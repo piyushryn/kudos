@@ -1,0 +1,10 @@
+node_modules
+.DS_Store
+.env
+.env.local
+server/.env
+dashboard/.env.local
+server/dist
+dashboard/.next
+server/node_modules
+dashboard/node_modules

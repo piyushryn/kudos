@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String             @id @default(cuid())
+  slackUserId    String             @unique @map("slack_user_id")
+  displayName    String             @map("display_name")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  balances       UserGivingBalance[]
+  givenKudos     KudosTransaction[] @relation("GivenKudos")
+  receivedKudos  KudosTransaction[] @relation("ReceivedKudos")
+
+  @@map("users")
+}
+
+model UserGivingBalance {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  month           Int
+  year            Int
+  remainingPoints Int      @map("remaining_points")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month, year])
+  @@index([month, year])
+  @@map("user_giving_balance")
+}
+
+model KudosTransaction {
+  id         String   @id @default(cuid())
+  giverId    String   @map("giver_id")
+  receiverId String   @map("receiver_id")
+  points     Int
+  message    String
+  createdAt  DateTime @default(now()) @map("created_at")
+  month      Int
+  year       Int
+  giver      User     @relation("GivenKudos", fields: [giverId], references: [id], onDelete: Restrict)
+  receiver   User     @relation("ReceivedKudos", fields: [receiverId], references: [id], onDelete: Restrict)
+
+  @@index([receiverId, month, year])
+  @@index([giverId, month, year])
+  @@index([createdAt])
+  @@map("kudos_transactions")
+}

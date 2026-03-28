@@ -1,0 +1,80 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kudos-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kudos}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-kudos}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  migrate:
+    build:
+      context: ./server
+    container_name: kudos-migrate
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-kudos}
+      SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
+      DEFAULT_MONTHLY_BALANCE: ${DEFAULT_MONTHLY_BALANCE:-100}
+      MAX_KUDOS_PER_TRANSACTION: ${MAX_KUDOS_PER_TRANSACTION:-50}
+      ENABLE_DAILY_RECEIVER_CAP: ${ENABLE_DAILY_RECEIVER_CAP:-false}
+      DAILY_RECEIVER_CAP: ${DAILY_RECEIVER_CAP:-100}
+      CRON_MONTHLY_RESET: ${CRON_MONTHLY_RESET:-0 2 1 * *}
+      ENABLE_MANUAL_MONTHLY_RESET: ${ENABLE_MANUAL_MONTHLY_RESET:-false}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN}
+    command: ["sh", "-c", "npx prisma migrate deploy"]
+
+  server:
+    build:
+      context: ./server
+    container_name: kudos-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-kudos}
+      SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
+      DEFAULT_MONTHLY_BALANCE: ${DEFAULT_MONTHLY_BALANCE:-100}
+      MAX_KUDOS_PER_TRANSACTION: ${MAX_KUDOS_PER_TRANSACTION:-50}
+      ENABLE_DAILY_RECEIVER_CAP: ${ENABLE_DAILY_RECEIVER_CAP:-false}
+      DAILY_RECEIVER_CAP: ${DAILY_RECEIVER_CAP:-100}
+      CRON_MONTHLY_RESET: ${CRON_MONTHLY_RESET:-0 2 1 * *}
+      ENABLE_MANUAL_MONTHLY_RESET: ${ENABLE_MANUAL_MONTHLY_RESET:-false}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN}
+    ports:
+      - "4000:4000"
+
+  dashboard:
+    build:
+      context: ./dashboard
+    container_name: kudos-dashboard
+    depends_on:
+      - server
+    environment:
+      NODE_ENV: production
+      DASHBOARD_API_BASE_URL: http://server:4000
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN}
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
