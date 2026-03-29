@@ -58,10 +58,14 @@ export const patchUserCategoryHandler = async (req: Request, res: Response): Pro
     });
     return;
   }
-  const category = await updateUserCategory(id, {
-    name: parsed.data.name,
-    monthlyQuota: parsed.data.monthlyQuota,
-  });
+  const patch: { name?: string; monthlyQuota?: number | null } = {};
+  if (parsed.data.name !== undefined) {
+    patch.name = parsed.data.name;
+  }
+  if (parsed.data.monthlyQuota !== undefined) {
+    patch.monthlyQuota = parsed.data.monthlyQuota;
+  }
+  const category = await updateUserCategory(id, patch);
   res.status(200).json(category);
 };
 

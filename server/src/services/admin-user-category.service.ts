@@ -79,7 +79,7 @@ export const createUserCategory = async (input: {
 
 export const updateUserCategory = async (
   id: string,
-  input: { name?: string; monthlyQuota: number | null | undefined },
+  input: { name?: string; monthlyQuota?: number | null },
 ): Promise<UserCategoryDto> => {
   const existing = await prisma.userCategory.findUnique({ where: { id } });
   if (!existing) {
