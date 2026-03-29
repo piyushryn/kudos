@@ -107,9 +107,13 @@ Required env vars in `dashboard/.env.local`:
 
 Dashboard pages:
 
-- `/leaderboard`
-- `/users/:slackUserId`
-- `/audit-log`
+- `/leaderboard` — team leaderboard (only route outside `/admin`)
+- `/` — redirects to `/admin`
+- `/admin` — dashboard home
+- `/admin/audit-log`, `/admin/categories`, `/admin/users`, `/admin/quotas`
+- `/users/:slackUserId` — per-user stats
+
+Legacy `/audit-log` redirects to `/admin/audit-log`.
 
 ## 3) Slack App Setup
 
@@ -187,9 +191,10 @@ Shows caller totals: given vs received + current remaining balance.
 
 - Table **`user_categories`**: `key` (unique, e.g. `employee`), `name`, optional `monthly_giving_quota` (null = use `DEFAULT_MONTHLY_BALANCE`).
 - Migration seeds **`employee`**; new Slack users are linked to that category automatically.
-- Dashboard (same auth as the API — `INTERNAL_API_TOKEN` on server actions):
-  - **[Admin · Categories](/admin/categories)** — create/edit/delete categories (delete only when no users use the category; `employee` cannot be deleted).
-  - **[Admin · Quotas](/admin/quotas)** — assign a category to one user or many; reset one user’s **current month** balance; **reset all** (two browser confirmations).
+- Dashboard: **`/leaderboard`** is the only UI route outside **`/admin`**; everything else (home, audit log, categories, users, quotas) lives under **`/admin/*`** (same auth — `INTERNAL_API_TOKEN` on server actions where applicable).
+  - **`/admin/categories`** — create/edit/delete categories (delete only when no users use the category; `employee` cannot be deleted).
+  - **`/admin/users`** — searchable user table (category, quotas, remaining balance); links to per-user stats.
+  - **`/admin/quotas`** — assign categories, reset balances, bulk actions, reset all.
 
 ## API Endpoints (for dashboard/internal use)
 

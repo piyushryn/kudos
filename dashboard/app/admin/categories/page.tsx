@@ -1,7 +1,9 @@
 import Link from "next/link";
 
-import { DeleteCategoryButton } from "./delete-category-button";
+import { PageHeader } from "@/components/page-header";
+
 import { createCategoryAction, updateCategoryAction } from "./actions";
+import { DeleteCategoryButton } from "./delete-category-button";
 
 type CategoryRow = {
   id: string;
@@ -36,91 +38,121 @@ export default async function AdminCategoriesPage({
   const data = await loadCategories();
 
   return (
-    <div className="stack">
-      <h2>Admin · User categories</h2>
-      <p className="muted">
-        Categories define shared settings such as monthly giving quota. Leave quota empty to use the workspace{" "}
-        <code>DEFAULT_MONTHLY_BALANCE</code>. New Slack users are assigned the <strong>employee</strong> category
-        automatically. Manage who is in which category on{" "}
-        <Link href="/admin/quotas">Admin · Quotas</Link>.
-      </p>
+    <>
+      <PageHeader
+        title="User categories"
+        description={
+          <>
+            Shared settings such as monthly giving quota. Leave quota empty to use workspace <code>DEFAULT_MONTHLY_BALANCE</code>.
+            New Slack users get the <strong>employee</strong> category. Browse users on{" "}
+            <Link href="/admin/users" className="linkInline">
+              Users
+            </Link>
+            ; assign categories on{" "}
+            <Link href="/admin/quotas" className="linkInline">
+              Quotas & balances
+            </Link>
+            .
+          </>
+        }
+      />
 
-      {sp.notice ? <p className="noticeBanner">{decodeURIComponent(sp.notice)}</p> : null}
-      {sp.error ? <p className="errorBanner">{decodeURIComponent(sp.error)}</p> : null}
-      {"error" in data ? <p className="errorBanner">{data.error}</p> : null}
+      <div className="stack">
+        {sp.notice ? <p className="noticeBanner">{decodeURIComponent(sp.notice)}</p> : null}
+        {sp.error ? <p className="errorBanner">{decodeURIComponent(sp.error)}</p> : null}
+        {"error" in data ? <p className="errorBanner">{data.error}</p> : null}
 
-      <section className="card">
-        <h3>New category</h3>
-        <p className="muted">
-          Key: lowercase identifier (e.g. <code>manager</code>). Cannot be changed later.
-        </p>
-        <form action={createCategoryAction} className="formGrid">
-          <label>
-            Key
-            <input name="key" type="text" required placeholder="manager" className="input" pattern="[a-z][a-z0-9_]{1,62}" />
-          </label>
-          <label>
-            Display name
-            <input name="name" type="text" required placeholder="Manager" className="input" />
-          </label>
-          <label>
-            Monthly quota (optional)
-            <input name="quota" type="number" min={1} placeholder="Workspace default if empty" className="input" />
-          </label>
-          <button type="submit" className="button">
-            Create category
-          </button>
-        </form>
-      </section>
-
-      {"categories" in data ? (
-        <section className="stack">
-          <h3>Existing categories</h3>
-          <div className="tableWrapper">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Key</th>
-                  <th>Name &amp; quota</th>
-                  <th>Users</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.categories.map((c) => (
-                  <tr key={c.id}>
-                    <td>
-                      <code>{c.key}</code>
-                    </td>
-                    <td>
-                      <form action={updateCategoryAction} className="row" style={{ gap: "0.5rem", flexWrap: "wrap" }}>
-                        <input type="hidden" name="categoryId" value={c.id} />
-                        <input name="name" type="text" defaultValue={c.name} required className="input" style={{ minWidth: "140px" }} />
-                        <input
-                          name="quota"
-                          type="number"
-                          min={1}
-                          placeholder="Default"
-                          defaultValue={c.monthlyGivingQuota ?? ""}
-                          className="input"
-                          style={{ width: "120px" }}
-                        />
-                        <button type="submit" className="button secondaryButton">
-                          Save
-                        </button>
-                      </form>
-                    </td>
-                    <td>{c.userCount}</td>
-                    <td>
-                      {c.key !== "employee" ? <DeleteCategoryButton categoryId={c.id} /> : <span className="muted">—</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <section className="card">
+          <h2 className="cardTitle">New category</h2>
+          <p className="muted" style={{ marginBottom: "1rem" }}>
+            Key: lowercase identifier (e.g. <code>manager</code>). Cannot be changed later.
+          </p>
+          <form action={createCategoryAction} className="formGrid">
+            <label>
+              Key
+              <input
+                name="key"
+                type="text"
+                required
+                placeholder="manager"
+                className="input"
+                pattern="[a-z][a-z0-9_]{1,62}"
+              />
+            </label>
+            <label>
+              Display name
+              <input name="name" type="text" required placeholder="Manager" className="input" />
+            </label>
+            <label>
+              Monthly quota (optional)
+              <input name="quota" type="number" min={1} placeholder="Workspace default if empty" className="input" />
+            </label>
+            <button type="submit" className="button">
+              Create category
+            </button>
+          </form>
         </section>
-      ) : null}
-    </div>
+
+        {"categories" in data ? (
+          <section className="stack">
+            <h2 className="sectionHeading">Existing categories</h2>
+            <div className="tableWrapper">
+              <table className="table" style={{ minWidth: "720px" }}>
+                <thead>
+                  <tr>
+                    <th>Key</th>
+                    <th>Name &amp; quota</th>
+                    <th>Users</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.categories.map((c) => (
+                    <tr key={c.id}>
+                      <td>
+                        <code>{c.key}</code>
+                      </td>
+                      <td>
+                        <form action={updateCategoryAction} className="row" style={{ gap: "0.5rem", flexWrap: "wrap" }}>
+                          <input type="hidden" name="categoryId" value={c.id} />
+                          <input
+                            name="name"
+                            type="text"
+                            defaultValue={c.name}
+                            required
+                            className="input"
+                            style={{ minWidth: "140px" }}
+                          />
+                          <input
+                            name="quota"
+                            type="number"
+                            min={1}
+                            placeholder="Default"
+                            defaultValue={c.monthlyGivingQuota ?? ""}
+                            className="input"
+                            style={{ width: "120px" }}
+                          />
+                          <button type="submit" className="button secondaryButton">
+                            Save
+                          </button>
+                        </form>
+                      </td>
+                      <td>{c.userCount}</td>
+                      <td>
+                        {c.key !== "employee" ? (
+                          <DeleteCategoryButton categoryId={c.id} />
+                        ) : (
+                          <span className="muted">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
+      </div>
+    </>
   );
 }

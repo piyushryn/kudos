@@ -1,6 +1,8 @@
 import Link from "next/link";
 
-import { ResetAllBalancesButton } from "../../../components/reset-all-balances-button";
+import { PageHeader } from "@/components/page-header";
+import { ResetAllBalancesButton } from "@/components/reset-all-balances-button";
+
 import {
   assignUserCategoryFormAction,
   bulkCategoryFormAction,
@@ -13,47 +15,6 @@ type AdminUserCategory = {
   name: string;
   monthlyGivingQuota: number | null;
 };
-
-type AdminUsersResponse = {
-  users: Array<{
-    id: string;
-    slackUserId: string;
-    displayName: string;
-    userCategory: AdminUserCategory;
-    effectiveMonthlyQuota: number;
-    remainingBalanceThisMonth: number;
-  }>;
-  total: number;
-  page: number;
-  pageSize: number;
-  defaultMonthlyBalance: number;
-};
-
-async function loadAdminUsers(
-  search: string,
-  page: number,
-): Promise<AdminUsersResponse | { error: string }> {
-  const base = (process.env.DASHBOARD_API_BASE_URL ?? "http://localhost:4000").replace(/\/$/, "");
-  const token = process.env.INTERNAL_API_TOKEN;
-  if (!token) {
-    return { error: "INTERNAL_API_TOKEN is not set." };
-  }
-  const qs = new URLSearchParams({
-    page: String(Math.max(1, page)),
-    limit: "40",
-  });
-  if (search.trim()) {
-    qs.set("search", search.trim());
-  }
-  const res = await fetch(`${base}/admin/users?${qs}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    return { error: `Failed to load users (${res.status})` };
-  }
-  return res.json() as Promise<AdminUsersResponse>;
-}
 
 type CategoryListResponse = { categories: AdminUserCategory[] } | { error: string };
 
@@ -103,159 +64,109 @@ function categorySelect(categories: AdminUserCategory[], name = "userCategoryId"
 export default async function AdminQuotasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ notice?: string; error?: string; search?: string; page?: string }>;
+  searchParams: Promise<{ notice?: string; error?: string }>;
 }) {
   const sp = await searchParams;
-  const search = sp.search ?? "";
-  const page = Number(sp.page ?? 1) || 1;
-  const [data, catData] = await Promise.all([loadAdminUsers(search, page), loadCategoryOptions()]);
+  const catData = await loadCategoryOptions();
   const categories = "categories" in catData ? catData.categories : undefined;
   const categoryLoadError = "error" in catData ? catData.error : undefined;
   const categoryOptions =
     categories !== undefined && categories.length > 0 ? categories : null;
 
   return (
-    <div className="stack">
-      <h2>Admin · Quotas &amp; balances</h2>
-      <p className="muted">
-        Workspace default when a category has no quota: <code>DEFAULT_MONTHLY_BALANCE</code> (currently{" "}
-        {"error" in data ? "—" : data.defaultMonthlyBalance}). Define categories and quotas on{" "}
-        <Link href="/admin/categories">Admin · Categories</Link>. Assign categories here; effective quota updates
-        immediately for new balance rows and manual resets.
-      </p>
+    <>
+      <PageHeader
+        title="Quotas & balances"
+        description={
+          <>
+            Assign categories, reset monthly balances, and bulk-update quotas. Browse everyone in the workspace on{" "}
+            <Link href="/admin/users" className="linkInline">
+              Users
+            </Link>
+            .
+          </>
+        }
+      />
 
-      {sp.notice ? <p className="noticeBanner">{decodeURIComponent(sp.notice)}</p> : null}
-      {sp.error ? <p className="errorBanner">{decodeURIComponent(sp.error)}</p> : null}
-      {"error" in data ? <p className="errorBanner">{data.error}</p> : null}
-      {categoryLoadError ? <p className="errorBanner">{categoryLoadError}</p> : null}
+      <div className="stack">
+        {sp.notice ? <p className="noticeBanner">{decodeURIComponent(sp.notice)}</p> : null}
+        {sp.error ? <p className="errorBanner">{decodeURIComponent(sp.error)}</p> : null}
+        {categoryLoadError ? <p className="errorBanner">{categoryLoadError}</p> : null}
 
-      <section className="card">
-        <h2>One user</h2>
-        <p className="muted">
-          Slack User ID looks like <code>U09ABCDEF12</code>.
+        <p className="pageDescription" style={{ marginTop: "-0.75rem", marginBottom: "0.25rem" }}>
+          Category definitions live under{" "}
+          <Link href="/admin/categories" className="linkInline">
+            User categories
+          </Link>
+          . The workspace default when a category has no quota is <code>DEFAULT_MONTHLY_BALANCE</code> (see env on the
+          API server).
         </p>
-        {!categoryOptions && !categoryLoadError ? (
-          <p className="muted">
-            No categories available. Add them on <Link href="/admin/categories">Admin · Categories</Link>.
+
+        <section className="card">
+          <h2 className="cardTitle">One user</h2>
+          <p className="muted" style={{ marginBottom: "1rem" }}>
+            Slack User ID looks like <code>U09ABCDEF12</code>.
           </p>
-        ) : null}
-        {categoryOptions ? (
-          <form action={assignUserCategoryFormAction} className="formGrid">
+          {!categoryOptions && !categoryLoadError ? (
+            <p className="muted" style={{ marginBottom: "1rem" }}>
+              No categories available. Add them under{" "}
+              <Link href="/admin/categories" className="linkInline">
+                User categories
+              </Link>
+              .
+            </p>
+          ) : null}
+          {categoryOptions ? (
+            <form action={assignUserCategoryFormAction} className="formGrid">
+              <label>
+                Slack User ID
+                <input name="slackUserId" type="text" required placeholder="U09ABCDEF12" className="input" />
+              </label>
+              {categorySelect(categoryOptions)}
+              <button type="submit" className="button">
+                Assign category
+              </button>
+            </form>
+          ) : null}
+          <form action={resetUserBalanceFormAction} className="formGrid" style={{ marginTop: "1.25rem" }}>
             <label>
-              Slack User ID
+              Slack User ID (reset balance)
               <input name="slackUserId" type="text" required placeholder="U09ABCDEF12" className="input" />
             </label>
-            {categorySelect(categoryOptions)}
-            <button type="submit" className="button">
-              Assign category
-            </button>
-          </form>
-        ) : null}
-        <form action={resetUserBalanceFormAction} className="formGrid" style={{ marginTop: "1rem" }}>
-          <label>
-            Slack User ID (reset balance)
-            <input name="slackUserId" type="text" required placeholder="U09ABCDEF12" className="input" />
-          </label>
-          <button type="submit" className="button secondaryButton">
-            Reset this user’s balance (current month → full quota)
-          </button>
-        </form>
-      </section>
-
-      <section className="card">
-        <h2>Bulk assign category</h2>
-        <p className="muted">One Slack User ID per line (or comma-separated). Only existing users are updated.</p>
-        {categoryOptions ? (
-          <form action={bulkCategoryFormAction} className="stack">
-            <label>
-              Slack User IDs
-              <textarea name="slackUserIds" rows={6} className="textarea" placeholder={"U09AAA\nU09BBB"} required />
-            </label>
-            {categorySelect(categoryOptions)}
-            <button type="submit" className="button">
-              Apply category to listed users
-            </button>
-          </form>
-        ) : null}
-      </section>
-
-      <section className="card">
-        <h2>Reset everyone (current month)</h2>
-        <p className="muted">
-          Sets every user’s <strong>remaining</strong> balance for this calendar month to their effective quota (from
-          their category). Requires two confirmations.
-        </p>
-        <ResetAllBalancesButton />
-      </section>
-
-      {"error" in data ? null : (
-        <section className="stack">
-          <h2>Users ({data.total})</h2>
-          <form method="get" className="row">
-            <input
-              name="search"
-              type="search"
-              placeholder="Search name or Slack ID"
-              defaultValue={search}
-              className="input"
-              style={{ flex: 1, maxWidth: "320px" }}
-            />
-            <input type="hidden" name="page" value="1" />
             <button type="submit" className="button secondaryButton">
-              Search
+              Reset this user’s balance (current month → full quota)
             </button>
           </form>
-          <div className="tableWrapper">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Slack ID</th>
-                  <th>Category</th>
-                  <th>Cat. quota</th>
-                  <th>Effective quota</th>
-                  <th>Remaining (month)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.users.map((u) => (
-                  <tr key={u.id}>
-                    <td>{u.displayName}</td>
-                    <td>
-                      <Link href={`/users/${encodeURIComponent(u.slackUserId)}`}>{u.slackUserId}</Link>
-                    </td>
-                    <td>
-                      {u.userCategory.name} <span className="muted">({u.userCategory.key})</span>
-                    </td>
-                    <td>{u.userCategory.monthlyGivingQuota ?? "—"}</td>
-                    <td>{u.effectiveMonthlyQuota}</td>
-                    <td>{u.remainingBalanceThisMonth}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="row muted">
-            Page {data.page} of {Math.max(1, Math.ceil(data.total / data.pageSize))}
-            {data.page > 1 ? (
-              <Link
-                href={`/admin/quotas?search=${encodeURIComponent(search)}&page=${data.page - 1}`}
-                className="button secondaryButton"
-              >
-                Previous
-              </Link>
-            ) : null}
-            {data.page * data.pageSize < data.total ? (
-              <Link
-                href={`/admin/quotas?search=${encodeURIComponent(search)}&page=${data.page + 1}`}
-                className="button secondaryButton"
-              >
-                Next
-              </Link>
-            ) : null}
-          </div>
         </section>
-      )}
-    </div>
+
+        <section className="card">
+          <h2 className="cardTitle">Bulk assign category</h2>
+          <p className="muted" style={{ marginBottom: "1rem" }}>
+            One Slack User ID per line (or comma-separated). Only existing users are updated.
+          </p>
+          {categoryOptions ? (
+            <form action={bulkCategoryFormAction} className="stack">
+              <label>
+                Slack User IDs
+                <textarea name="slackUserIds" rows={6} className="textarea" placeholder={"U09AAA\nU09BBB"} required />
+              </label>
+              {categorySelect(categoryOptions)}
+              <button type="submit" className="button">
+                Apply category to listed users
+              </button>
+            </form>
+          ) : null}
+        </section>
+
+        <section className="card">
+          <h2 className="cardTitle">Reset everyone (current month)</h2>
+          <p className="muted" style={{ marginBottom: "1rem" }}>
+            Sets every user’s <strong>remaining</strong> balance for this calendar month to their effective quota (from
+            their category). Requires two confirmations.
+          </p>
+          <ResetAllBalancesButton />
+        </section>
+      </div>
+    </>
   );
 }
