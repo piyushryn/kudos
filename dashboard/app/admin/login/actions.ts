@@ -6,11 +6,9 @@ import { redirect } from "next/navigation";
 import {
   ADMIN_SESSION_COOKIE,
   SESSION_MAX_AGE_SEC,
+  adminPasswordMatches,
   createSessionToken,
-  credentialsMatch,
-  isDashboardAuthConfigured,
 } from "@/lib/admin-session";
-import { runtimeEnv } from "@/lib/runtime-env";
 
 function sanitizeNext(raw: string | undefined): string {
   if (!raw || !raw.startsWith("/admin") || raw.startsWith("//")) {
@@ -20,32 +18,20 @@ function sanitizeNext(raw: string | undefined): string {
 }
 
 export async function loginAction(formData: FormData): Promise<void> {
-  const username = String(formData.get("username") ?? "");
   const password = String(formData.get("password") ?? "");
   const next = sanitizeNext(String(formData.get("next") ?? ""));
 
-  if (!isDashboardAuthConfigured()) {
+  if (!adminPasswordMatches(password)) {
     redirect(
       "/admin/login?error=" +
-        encodeURIComponent("Login is not configured. Set dashboard env variables (see .env.example)."),
-    );
-  }
-
-  const expectedUser = runtimeEnv("DASHBOARD_ADMIN_USERNAME") ?? "";
-  const expectedPass = runtimeEnv("DASHBOARD_ADMIN_PASSWORD") ?? "";
-  const secret = runtimeEnv("DASHBOARD_AUTH_SECRET") ?? "";
-
-  if (!credentialsMatch(username, password, expectedUser, expectedPass)) {
-    redirect(
-      "/admin/login?error=" +
-        encodeURIComponent("Invalid username or password.") +
+        encodeURIComponent("Wrong password.") +
         "&next=" +
         encodeURIComponent(next),
     );
   }
 
   const jar = await cookies();
-  jar.set(ADMIN_SESSION_COOKIE, createSessionToken(secret), {
+  jar.set(ADMIN_SESSION_COOKIE, createSessionToken(), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

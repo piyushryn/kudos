@@ -1,42 +1,32 @@
-import { createHash, createHmac, timingSafeEqual } from "crypto";
-
-import { runtimeEnv } from "@/lib/runtime-env";
+import { createHmac, timingSafeEqual } from "crypto";
 
 export const ADMIN_SESSION_COOKIE = "kudos_admin_session";
 
 export const SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 7;
 
-export function isDashboardAuthConfigured(): boolean {
-  const u = runtimeEnv("DASHBOARD_ADMIN_USERNAME")?.trim();
-  const p = runtimeEnv("DASHBOARD_ADMIN_PASSWORD");
-  const s = runtimeEnv("DASHBOARD_AUTH_SECRET")?.trim();
-  return Boolean(u && p !== undefined && p.length > 0 && s && s.length >= 16);
+/** Temporary hardcoded gate — replace with proper auth later. */
+export const HARDCODED_ADMIN_PASSWORD = "password@123";
+
+const SESSION_SIGNING_SECRET = "kudos-dashboard-session-signing-secret";
+
+export function adminPasswordMatches(input: string): boolean {
+  const a = Buffer.from(input, "utf8");
+  const b = Buffer.from(HARDCODED_ADMIN_PASSWORD, "utf8");
+  if (a.length !== b.length) {
+    return false;
+  }
+  return timingSafeEqual(a, b);
 }
 
-function hashEqual(a: string, b: string): boolean {
-  const ha = createHash("sha256").update(a, "utf8").digest();
-  const hb = createHash("sha256").update(b, "utf8").digest();
-  return ha.length === hb.length && timingSafeEqual(ha, hb);
-}
-
-export function credentialsMatch(
-  username: string,
-  password: string,
-  expectedUsername: string,
-  expectedPassword: string,
-): boolean {
-  return hashEqual(username, expectedUsername) && hashEqual(password, expectedPassword);
-}
-
-export function createSessionToken(secret: string): string {
+export function createSessionToken(): string {
   const exp = Math.floor(Date.now() / 1000) + SESSION_MAX_AGE_SEC;
   const payload = JSON.stringify({ exp, v: 1 });
-  const sig = createHmac("sha256", secret).update(payload).digest("hex");
+  const sig = createHmac("sha256", SESSION_SIGNING_SECRET).update(payload).digest("hex");
   return Buffer.from(payload).toString("base64url") + "." + sig;
 }
 
-export function verifySessionToken(token: string | undefined, secret: string): boolean {
-  if (!token || !secret) {
+export function verifySessionToken(token: string | undefined): boolean {
+  if (!token) {
     return false;
   }
   const lastDot = token.lastIndexOf(".");
@@ -54,7 +44,7 @@ export function verifySessionToken(token: string | undefined, secret: string): b
   } catch {
     return false;
   }
-  const expectedHex = createHmac("sha256", secret).update(payload).digest("hex");
+  const expectedHex = createHmac("sha256", SESSION_SIGNING_SECRET).update(payload).digest("hex");
   try {
     if (!timingSafeEqual(Buffer.from(sigHex, "hex"), Buffer.from(expectedHex, "hex"))) {
       return false;

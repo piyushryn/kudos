@@ -78,9 +78,6 @@ services:
       NODE_ENV: production
       DASHBOARD_API_BASE_URL: http://server:4000
       INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN}
-      DASHBOARD_ADMIN_USERNAME: ${DASHBOARD_ADMIN_USERNAME:-admin}
-      DASHBOARD_ADMIN_PASSWORD: ${DASHBOARD_ADMIN_PASSWORD:-changeme}
-      DASHBOARD_AUTH_SECRET: ${DASHBOARD_AUTH_SECRET:-dev-dashboard-auth-secret-min-16}
     ports:
       - "3000:3000"
 

@@ -3,13 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/page-header";
-import {
-  ADMIN_SESSION_COOKIE,
-  isDashboardAuthConfigured,
-  verifySessionToken,
-} from "@/lib/admin-session";
-
-import { runtimeEnv } from "@/lib/runtime-env";
+import { ADMIN_SESSION_COOKIE, verifySessionToken } from "@/lib/admin-session";
 
 import { loginAction } from "./actions";
 
@@ -27,13 +21,11 @@ export default async function AdminLoginPage({
 }) {
   const sp = await searchParams;
   const next = sanitizeNext(sp.next);
-  const secret = runtimeEnv("DASHBOARD_AUTH_SECRET") ?? "";
   const jar = await cookies();
-  if (secret && verifySessionToken(jar.get(ADMIN_SESSION_COOKIE)?.value, secret)) {
+  if (verifySessionToken(jar.get(ADMIN_SESSION_COOKIE)?.value)) {
     redirect(next);
   }
 
-  const configured = isDashboardAuthConfigured();
   const errorParam = sp.error ? decodeURIComponent(sp.error) : null;
 
   return (
@@ -46,28 +38,16 @@ export default async function AdminLoginPage({
       <div className="stack" style={{ maxWidth: "420px" }}>
         {errorParam ? <p className="errorBanner">{errorParam}</p> : null}
 
-        {!configured ? (
-          <p className="errorBanner">
-            Set <code>DASHBOARD_ADMIN_USERNAME</code>, <code>DASHBOARD_ADMIN_PASSWORD</code>, and{" "}
-            <code>DASHBOARD_AUTH_SECRET</code> (at least 16 characters) in the dashboard environment. See{" "}
-            <code>.env.example</code>.
-          </p>
-        ) : (
-          <form action={loginAction} className="card formGrid">
-            <input type="hidden" name="next" value={next} />
-            <label>
-              Username
-              <input name="username" type="text" autoComplete="username" required className="input" />
-            </label>
-            <label>
-              Password
-              <input name="password" type="password" autoComplete="current-password" required className="input" />
-            </label>
-            <button type="submit" className="button">
-              Sign in
-            </button>
-          </form>
-        )}
+        <form action={loginAction} className="card formGrid">
+          <input type="hidden" name="next" value={next} />
+          <label>
+            Password
+            <input name="password" type="password" autoComplete="current-password" required className="input" />
+          </label>
+          <button type="submit" className="button">
+            Sign in
+          </button>
+        </form>
 
         <p className="muted" style={{ fontSize: "0.9rem" }}>
           <Link href="/leaderboard" className="linkInline">
