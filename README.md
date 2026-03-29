@@ -36,7 +36,7 @@ Notes:
 
 Compose includes **`nginx`** as a reverse proxy for **`kudos.piyusharyan.xyz`**:
 
-- `http://kudos.piyusharyan.xyz/` → dashboard
+- `http://kudos.piyusharyan.xyz/` → dashboard (including **`/admin/*`** UI and login — not the Express JSON `/admin` API)
 - `http://kudos.piyusharyan.xyz/slack/commands` → API (use HTTPS in production; see `nginx/README.md`)
 - `http://kudos.piyusharyan.xyz/api/...` → API
 - `http://kudos.piyusharyan.xyz/health` → API health

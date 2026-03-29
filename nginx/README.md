@@ -8,8 +8,9 @@
 | `/slack/*` | Express API (`server:4000`) |
 | `/health` | Express API |
 | `/api/*` | Express API |
-| `/admin/*` | Express API |
-| `/` | Next.js dashboard (`dashboard:3000`) |
+| `/`, `/admin/*`, `/leaderboard`, `/users/*`, `/_next/*` | Next.js dashboard (`dashboard:3000`) |
+
+Express also exposes JSON under `/admin/*` (Bearer `INTERNAL_API_TOKEN`), but that is **not** proxied on the public hostname: it would collide with the Next.js admin UI. The dashboard container calls it only via **`DASHBOARD_API_BASE_URL`** (e.g. `http://server:4000` on the Docker network). To hit those endpoints from your laptop, use the API port directly or a separate host/subdomain—not `https://your-domain/admin/...` on nginx.
 
 ## DNS
 
