@@ -1,10 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { parseKudosCommand } from "../parser";
+import { resolveKudosSlashText } from "../../services/kudos-command-resolve.service";
+import { resolveSlackUserIdFromHandle } from "../../services/slack-user-resolve.service";
+import { parseKudosAtHandleDraft, parseKudosUserIdMention } from "../parser";
 
-describe("parseKudosCommand", () => {
+vi.mock("../../services/slack-user-resolve.service", () => ({
+  resolveSlackUserIdFromHandle: vi.fn(),
+}));
+
+describe("parseKudosUserIdMention", () => {
   it("parses a valid kudos command", () => {
-    const parsed = parseKudosCommand("<@U123456> 10 great debugging help today");
+    const parsed = parseKudosUserIdMention("<@U123456> 10 great debugging help today");
     expect(parsed).toEqual({
       receiverSlackUserId: "U123456",
       points: 10,
@@ -13,7 +19,7 @@ describe("parseKudosCommand", () => {
   });
 
   it("parses mention with display label", () => {
-    const parsed = parseKudosCommand("<@U123456|rahul> 5 nice work");
+    const parsed = parseKudosUserIdMention("<@U123456|rahul> 5 nice work");
     expect(parsed).toEqual({
       receiverSlackUserId: "U123456",
       points: 5,
@@ -22,23 +28,52 @@ describe("parseKudosCommand", () => {
   });
 
   it("allows no space between mention and points", () => {
-    const parsed = parseKudosCommand("<@U09ABC>10 thanks");
+    const parsed = parseKudosUserIdMention("<@U09ABC>10 thanks");
     expect(parsed).toEqual({
       receiverSlackUserId: "U09ABC",
       points: 10,
       message: "thanks",
     });
   });
+});
 
-  it("throws for plain @name without Slack mention token", () => {
-    expect(() => parseKudosCommand("@rahul 10 great help")).toThrow(/autocomplete/i);
+describe("parseKudosAtHandleDraft", () => {
+  it("parses plain @handle like Slack slash commands often send", () => {
+    const draft = parseKudosAtHandleDraft("@swarnim 10 points");
+    expect(draft).toEqual({
+      handle: "swarnim",
+      points: 10,
+      message: "points",
+    });
+  });
+});
+
+describe("resolveKudosSlashText", () => {
+  beforeEach(() => {
+    vi.mocked(resolveSlackUserIdFromHandle).mockResolvedValue("U_RESOLVED");
   });
 
-  it("throws for empty text", () => {
-    expect(() => parseKudosCommand("   ")).toThrow(/Add who to thank/i);
+  it("resolves @handle via Slack user list lookup", async () => {
+    const parsed = await resolveKudosSlashText("@rahul 10 great help");
+    expect(parsed).toEqual({
+      receiverSlackUserId: "U_RESOLVED",
+      points: 10,
+      message: "great help",
+    });
+    expect(resolveSlackUserIdFromHandle).toHaveBeenCalledWith("rahul");
   });
 
-  it("throws for invalid command text", () => {
-    expect(() => parseKudosCommand("invalid command")).toThrow(/autocomplete/i);
+  it("prefers <@U…> without calling lookup", async () => {
+    const parsed = await resolveKudosSlashText("<@U111> 3 hi");
+    expect(parsed.receiverSlackUserId).toBe("U111");
+    expect(resolveSlackUserIdFromHandle).not.toHaveBeenCalled();
+  });
+
+  it("throws for empty text", async () => {
+    await expect(resolveKudosSlashText("   ")).rejects.toThrow(/Add who to thank/i);
+  });
+
+  it("throws for invalid command text", async () => {
+    await expect(resolveKudosSlashText("invalid command")).rejects.toThrow(/Use one of these formats/i);
   });
 });

@@ -6,38 +6,21 @@ export type ParsedKudosCommand = {
   message: string;
 };
 
-// Slack encodes @mentions as <@USER_ID> or <@USER_ID|display name> in slash command `text`.
-// Plain "@name" without picking from autocomplete is not sent as <@...> — users must @-mention from the picker.
-const commandPattern =
+// Slack autocomplete sends: <@USER_ID> or <@USER_ID|label>
+const userMentionPattern =
   /^<@([A-Z0-9]+)(?:\|[^>]+)?>\s*(\d+)\s+([\s\S]+)$/iu;
 
-const stripInvisible = (value: string): string =>
+// Many clients send plain legacy handle: @swarnim 10 thanks (no <@U…> token)
+const atHandlePattern = /^@([\w.-]+)\s*(\d+)\s+([\s\S]+)$/iu;
+
+export const stripInvisible = (value: string): string =>
   value.replace(/[\u200B-\u200D\uFEFF]/g, "");
 
-export const parseKudosCommand = (text: string): ParsedKudosCommand => {
+export const parseKudosUserIdMention = (text: string): ParsedKudosCommand | null => {
   const trimmed = stripInvisible(text).trim();
-
-  if (trimmed.length === 0) {
-    throw new AppError(
-      "Add who to thank, how many points, and a short message. Example: `/kudos @Rahul 10 great debugging help` — use @ and choose them from the list so Slack inserts the mention.",
-      400,
-    );
-  }
-
-  if (!trimmed.includes("<@")) {
-    throw new AppError(
-      "Start with an @mention *from Slack’s autocomplete* (not plain text). Example: `/kudos @Rahul 10 great debugging help` — after @, pick the person from the list.",
-      400,
-    );
-  }
-
-  const match = commandPattern.exec(trimmed);
-
+  const match = userMentionPattern.exec(trimmed);
   if (!match) {
-    throw new AppError(
-      "Format: `/kudos @person points message` — e.g. `/kudos @Rahul 10 great debugging help`. Use @ + pick the user, then a whole number, then your message.",
-      400,
-    );
+    return null;
   }
 
   const receiverSlackUserId = match[1] ?? "";
@@ -45,8 +28,39 @@ export const parseKudosCommand = (text: string): ParsedKudosCommand => {
   const message = (match[3] ?? "").trim();
 
   if (!receiverSlackUserId || !Number.isInteger(points) || message.length === 0) {
-    throw new AppError("Invalid command arguments.", 400);
+    return null;
   }
 
   return { receiverSlackUserId, points, message };
 };
+
+export type KudosAtHandleDraft = {
+  handle: string;
+  points: number;
+  message: string;
+};
+
+export const parseKudosAtHandleDraft = (text: string): KudosAtHandleDraft | null => {
+  const trimmed = stripInvisible(text).trim();
+  const match = atHandlePattern.exec(trimmed);
+  if (!match) {
+    return null;
+  }
+
+  const handle = (match[1] ?? "").trim();
+  const points = Number(match[2] ?? Number.NaN);
+  const message = (match[3] ?? "").trim();
+
+  if (!handle || !Number.isInteger(points) || message.length === 0) {
+    return null;
+  }
+
+  return { handle, points, message };
+};
+
+export const formatKudosUsageError = (): string =>
+  [
+    "Use one of these formats:",
+    "• `/kudos @someone 10 great work` — type @ and pick the person *or* use their Slack username (what you see after @ in their profile).",
+    "• `/kudos` with autocomplete so Slack inserts a mention token (shows as a linked name).",
+  ].join("\n");

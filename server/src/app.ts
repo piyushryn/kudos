@@ -11,6 +11,9 @@ import { logger } from "./logger";
 
 export const app = express();
 
+// Behind nginx / Cloudflare; required so express-rate-limit accepts X-Forwarded-For
+app.set("trust proxy", true);
+
 app.use(
   pinoHttp({
     logger,

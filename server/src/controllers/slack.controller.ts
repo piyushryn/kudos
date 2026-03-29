@@ -13,7 +13,7 @@ import {
   formatLeaderboardMessage,
   formatStatsMessage,
 } from "../slack/messages";
-import { parseKudosCommand } from "../slack/parser";
+import { resolveKudosSlashText } from "../services/kudos-command-resolve.service";
 import { giveKudos } from "../services/kudos.service";
 import { getLeaderboard, getUserStatsBySlackId } from "../services/stats.service";
 import type { SlackCommandPayload } from "../types/slack";
@@ -42,7 +42,7 @@ export const handleSlackCommand = async (req: Request, res: Response): Promise<v
   try {
     switch (payload.command) {
       case "/kudos": {
-        const parsed = parseKudosCommand(payload.text ?? "");
+        const parsed = await resolveKudosSlashText(payload.text ?? "");
         logKudosParsed(parsed);
         const result = await giveKudos({
           giverSlackUserId: payload.user_id,
