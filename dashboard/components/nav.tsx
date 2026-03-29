@@ -4,6 +4,8 @@ const links = [
   { href: "/", label: "Home" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/audit-log", label: "Audit log" },
+  { href: "/admin/categories", label: "Admin · Categories" },
+  { href: "/admin/quotas", label: "Admin · Quotas" },
 ];
 
 export function Nav() {

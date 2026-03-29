@@ -1,6 +1,6 @@
-import { config } from "../config";
 import { prisma } from "../db/prisma";
 import { getMonthYear } from "../utils/date";
+import { effectiveQuotaForUser } from "../utils/balance-quota";
 
 export const getOrCreateCurrentMonthBalance = async (userId: string) => {
   const { month, year } = getMonthYear();
@@ -19,12 +19,22 @@ export const getOrCreateCurrentMonthBalance = async (userId: string) => {
     return existing;
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { userCategory: true },
+  });
+  if (!user) {
+    throw new Error(`User not found: ${userId}`);
+  }
+
+  const quota = effectiveQuotaForUser(user);
+
   return prisma.userGivingBalance.create({
     data: {
       userId,
       month,
       year,
-      remainingPoints: config.DEFAULT_MONTHLY_BALANCE,
+      remainingPoints: quota,
     },
   });
 };

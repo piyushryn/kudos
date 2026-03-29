@@ -28,12 +28,22 @@ export type LeaderboardResponse = {
   topReceivers: Array<{ userId: string; displayName: string; points: number }>;
 };
 
+export type UserCategorySummary = {
+  id: string;
+  key: string;
+  name: string;
+  monthlyGivingQuota: number | null;
+};
+
 export type UserStatsResponse = {
   slackUserId: string;
   displayName: string;
   totalGiven: number;
   totalReceived: number;
   remainingBalance: number;
+  userCategory: UserCategorySummary;
+  effectiveMonthlyQuota: number;
+  workspaceDefaultMonthlyBalance: number;
 };
 
 export type AuditLogResponse = {

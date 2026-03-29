@@ -176,19 +176,39 @@ Shows caller totals: given vs received + current remaining balance.
 ## Monthly Reset
 
 - Scheduler runs via cron expression (`CRON_MONTHLY_RESET`) and provisions current-month balances.
-- Idempotent upserts prevent duplicate rows.
+- New rows use each user’s **effective** quota: their **category’s** `monthly_giving_quota` if set, otherwise `DEFAULT_MONTHLY_BALANCE`.
+- Idempotent upserts use `update: {}` so the cron job does **not** refill balances mid-month.
 - Optional guarded manual endpoint:
   - `POST /admin/monthly-reset`
   - Requires `Authorization: Bearer <INTERNAL_API_TOKEN>`
   - Works only if `ENABLE_MANUAL_MONTHLY_RESET=true`.
 
+## User categories & admin UI
+
+- Table **`user_categories`**: `key` (unique, e.g. `employee`), `name`, optional `monthly_giving_quota` (null = use `DEFAULT_MONTHLY_BALANCE`).
+- Migration seeds **`employee`**; new Slack users are linked to that category automatically.
+- Dashboard (same auth as the API — `INTERNAL_API_TOKEN` on server actions):
+  - **[Admin · Categories](/admin/categories)** — create/edit/delete categories (delete only when no users use the category; `employee` cannot be deleted).
+  - **[Admin · Quotas](/admin/quotas)** — assign a category to one user or many; reset one user’s **current month** balance; **reset all** (two browser confirmations).
+
 ## API Endpoints (for dashboard/internal use)
 
 - `GET /health`
 - `GET /api/leaderboard`
-- `GET /api/users/:slackUserId/stats`
+- `GET /api/users/:slackUserId/stats` (includes `userCategory`, `effectiveMonthlyQuota`, `workspaceDefaultMonthlyBalance`)
 - `GET /api/audit-log?page=1&pageSize=25`
-- `POST /admin/monthly-reset` (guarded)
+- `POST /admin/monthly-reset` (guarded by `ENABLE_MANUAL_MONTHLY_RESET`)
+- `GET /admin/user-categories` — list categories (includes `userCount`)
+- `POST /admin/user-categories` — body `{ "key": "manager", "name": "Manager", "monthlyQuota": 500 | null }`
+- `PATCH /admin/user-categories/:id` — body `{ "name"?, "monthlyQuota": number | null }`
+- `DELETE /admin/user-categories/:id` — only if empty and not `employee`
+- `GET /admin/users?page=1&limit=50&search=` — list users with category and current-month remaining
+- `PATCH /admin/users/:slackUserId/category` — body `{ "userCategoryId": "<cuid>" }`
+- `POST /admin/users/:slackUserId/reset-balance` — refill current month to effective quota
+- `POST /admin/users/bulk-category` — body `{ "slackUserIds": ["U…"], "userCategoryId": "<cuid>" }`
+- `POST /admin/balances/reset-all` — reset **all** users’ current-month balances to effective quota
+
+All `/admin/*` routes require `Authorization: Bearer <INTERNAL_API_TOKEN>` (same token as `/api/*`).
 
 ## Testing and Validation
 

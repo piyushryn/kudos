@@ -14,7 +14,11 @@ const main = async (): Promise<void> => {
       prisma.user.upsert({
         where: { slackUserId: user.slackUserId },
         update: { displayName: user.displayName },
-        create: user,
+        create: {
+          slackUserId: user.slackUserId,
+          displayName: user.displayName,
+          userCategory: { connect: { key: "employee" } },
+        },
       }),
     ),
   );

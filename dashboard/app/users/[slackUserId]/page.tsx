@@ -8,6 +8,7 @@ type UserStatsPageProps = {
 export default async function UserStatsPage({ params }: UserStatsPageProps) {
   const { slackUserId } = await params;
   const stats = await fetchUserStats(slackUserId);
+  const cat = stats.userCategory;
 
   return (
     <div className="stack">
@@ -17,6 +18,13 @@ export default async function UserStatsPage({ params }: UserStatsPageProps) {
         <StatCard label="Total given" value={stats.totalGiven} />
         <StatCard label="Total received" value={stats.totalReceived} />
         <StatCard label="Remaining this month" value={stats.remainingBalance} />
+        <StatCard label="Effective monthly quota" value={stats.effectiveMonthlyQuota} />
+        <StatCard label="Category" value={`${cat.name} (${cat.key})`} />
+        <StatCard
+          label="Category quota"
+          value={cat.monthlyGivingQuota ?? "Workspace default"}
+        />
+        <StatCard label="Workspace default" value={stats.workspaceDefaultMonthlyBalance} />
       </div>
     </div>
   );

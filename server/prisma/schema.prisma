@@ -7,15 +7,29 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model UserCategory {
+  id                 String   @id @default(cuid())
+  key                String   @unique
+  name               String
+  monthlyGivingQuota Int?     @map("monthly_giving_quota")
+  createdAt          DateTime @default(now()) @map("created_at")
+  users              User[]
+
+  @@map("user_categories")
+}
+
 model User {
-  id             String             @id @default(cuid())
-  slackUserId    String             @unique @map("slack_user_id")
-  displayName    String             @map("display_name")
-  createdAt      DateTime           @default(now()) @map("created_at")
+  id             String       @id @default(cuid())
+  slackUserId    String       @unique @map("slack_user_id")
+  displayName    String       @map("display_name")
+  userCategoryId String       @map("user_category_id")
+  userCategory   UserCategory @relation(fields: [userCategoryId], references: [id], onDelete: Restrict)
+  createdAt      DateTime     @default(now()) @map("created_at")
   balances       UserGivingBalance[]
   givenKudos     KudosTransaction[] @relation("GivenKudos")
   receivedKudos  KudosTransaction[] @relation("ReceivedKudos")
 
+  @@index([userCategoryId])
   @@map("users")
 }
 

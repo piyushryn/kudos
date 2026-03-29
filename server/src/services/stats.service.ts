@@ -1,6 +1,8 @@
+import { config } from "../config";
 import { kudosRepository } from "../db/kudos.repository";
 import { prisma } from "../db/prisma";
 import { getMonthYear } from "../utils/date";
+import { effectiveQuotaForUser } from "../utils/balance-quota";
 import { getOrCreateCurrentMonthBalance } from "./balance.service";
 import { getOrCreateUser } from "./user.service";
 
@@ -65,6 +67,14 @@ export const getUserStatsBySlackId = async (slackUserId: string) => {
     totalGiven: given._sum.points ?? 0,
     totalReceived: received._sum.points ?? 0,
     remainingBalance: balance.remainingPoints,
+    userCategory: {
+      id: user.userCategory.id,
+      key: user.userCategory.key,
+      name: user.userCategory.name,
+      monthlyGivingQuota: user.userCategory.monthlyGivingQuota,
+    },
+    effectiveMonthlyQuota: effectiveQuotaForUser(user),
+    workspaceDefaultMonthlyBalance: config.DEFAULT_MONTHLY_BALANCE,
   };
 };
 

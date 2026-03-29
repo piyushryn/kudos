@@ -1,6 +1,7 @@
 import { config } from "../config";
 import { prisma } from "../db/prisma";
 import { getMonthYear, startOfUtcDay, endOfUtcDay } from "../utils/date";
+import { effectiveQuotaForUser } from "../utils/balance-quota";
 import { AppError } from "../utils/errors";
 import { getOrCreateUser } from "./user.service";
 
@@ -73,6 +74,7 @@ export const giveKudos = async (params: GiveKudosParams): Promise<GiveKudosResul
   await validateDailyReceiverCap(receiver.id, params.points);
 
   const { month, year } = getMonthYear();
+  const giverQuota = effectiveQuotaForUser(giver);
 
   return prisma.$transaction(async (tx) => {
     const balance = await tx.userGivingBalance.upsert({
@@ -87,7 +89,7 @@ export const giveKudos = async (params: GiveKudosParams): Promise<GiveKudosResul
         userId: giver.id,
         month,
         year,
-        remainingPoints: config.DEFAULT_MONTHLY_BALANCE,
+        remainingPoints: giverQuota,
       },
       update: {},
     });
