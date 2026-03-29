@@ -33,19 +33,22 @@ model UserGivingBalance {
 }
 
 model KudosTransaction {
-  id         String   @id @default(cuid())
-  giverId    String   @map("giver_id")
-  receiverId String   @map("receiver_id")
-  points     Int
-  message    String
-  createdAt  DateTime @default(now()) @map("created_at")
-  month      Int
-  year       Int
-  giver      User     @relation("GivenKudos", fields: [giverId], references: [id], onDelete: Restrict)
-  receiver   User     @relation("ReceivedKudos", fields: [receiverId], references: [id], onDelete: Restrict)
+  id          String   @id @default(cuid())
+  giverId     String   @map("giver_id")
+  receiverId  String   @map("receiver_id")
+  points      Int
+  message     String
+  createdAt   DateTime @default(now()) @map("created_at")
+  month       Int
+  year        Int
+  channelId   String?  @map("channel_id")
+  channelName String?  @map("channel_name")
+  giver       User     @relation("GivenKudos", fields: [giverId], references: [id], onDelete: Restrict)
+  receiver    User     @relation("ReceivedKudos", fields: [receiverId], references: [id], onDelete: Restrict)
 
   @@index([receiverId, month, year])
   @@index([giverId, month, year])
   @@index([createdAt])
+  @@index([channelId])
   @@map("kudos_transactions")
 }

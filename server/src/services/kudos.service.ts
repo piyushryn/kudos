@@ -10,6 +10,8 @@ type GiveKudosParams = {
   receiverSlackUserId: string;
   points: number;
   message: string;
+  slackChannelId: string;
+  slackChannelName: string;
 };
 
 type GiveKudosResult = {
@@ -112,6 +114,8 @@ export const giveKudos = async (params: GiveKudosParams): Promise<GiveKudosResul
         message: params.message,
         month,
         year,
+        channelId: params.slackChannelId,
+        channelName: params.slackChannelName,
       },
     });
 

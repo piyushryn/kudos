@@ -11,6 +11,8 @@ describe("giveKudos validation", () => {
         receiverSlackUserId: "U123",
         points: 10,
         message: "great work",
+        slackChannelId: "C0TEST",
+        slackChannelName: "general",
       }),
     ).rejects.toThrow(/cannot give kudos to yourself/i);
   });
@@ -23,6 +25,8 @@ describe("giveKudos validation", () => {
         receiverSlackUserId: "U456",
         points: 0,
         message: "great work",
+        slackChannelId: "C0TEST",
+        slackChannelName: "general",
       }),
     ).rejects.toThrow(/positive whole number/i);
   });

@@ -12,27 +12,27 @@
     "slash_commands": [
       {
         "command": "/kudos",
-        "url": "http://http://52.66.29.42:3000/slack/commands",
+        "url": "https://YOUR_PUBLIC_URL/slack/commands",
         "description": "Give kudos to a teammate",
         "usage_hint": "@user points message",
         "should_escape": false
       },
       {
         "command": "/kudos-balance",
-        "url": "http://http://52.66.29.42:3000/slack/commands",
+        "url": "https://YOUR_PUBLIC_URL/slack/commands",
         "description": "Show your remaining monthly kudos balance",
         "should_escape": false
       },
       {
         "command": "/kudos-leaderboard",
-        "url": "http://http://52.66.29.42:3000/slack/commands",
+        "url": "https://YOUR_PUBLIC_URL/slack/commands",
         "description": "Top givers and top receivers",
         "usage_hint": "[optional limit 1-25]",
         "should_escape": false
       },
       {
         "command": "/kudos-stats",
-        "url": "http://http://52.66.29.42:3000/slack/commands",
+        "url": "https://YOUR_PUBLIC_URL/slack/commands",
         "description": "Your stats: given vs received and remaining balance",
         "should_escape": false
       }
@@ -40,7 +40,7 @@
   },
   "oauth_config": {
     "scopes": {
-      "bot": ["commands", "users:read"]
+      "bot": ["commands", "users:read", "conversations:read"]
     }
   },
   "settings": {

@@ -123,7 +123,9 @@ Create an internal Slack app and configure:
 2. **Request URL** for each command:
    - `https://<your-domain>/slack/commands`
 3. **OAuth scopes** (Bot token):
-   - `users:read` (for display names)
+   - `commands` (slash commands)
+   - `users:read` (display names and `users.list` for @handle resolution)
+   - `conversations:read` (verify `/kudos` runs in a channel, not a DM; read channel name for audit log)
 4. Install app to workspace and copy:
    - Bot token -> `SLACK_BOT_TOKEN`
    - Signing secret -> `SLACK_SIGNING_SECRET`
@@ -139,6 +141,10 @@ The API logs Slack traffic with `subsystem: "slack"` (search logs for `slack_com
 - Secrets in the form body (`token`, `response_url`, `trigger_id`) are always redacted in logs.
 
 ### `/kudos @user points message`
+
+`/kudos` works only in **public or private channels**. It is **blocked in DMs and group DMs** (Slack `D…` conversations and `is_im` / `is_mpim` from `conversations.info`). Other commands (`/kudos-balance`, etc.) still work from anywhere.
+
+Each stored kudos row records **channel id and channel name** for the dashboard audit log.
 
 Example:
 

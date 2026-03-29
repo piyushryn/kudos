@@ -14,6 +14,7 @@ import {
   formatStatsMessage,
 } from "../slack/messages";
 import { resolveKudosSlashText } from "../services/kudos-command-resolve.service";
+import { assertKudosAllowedInChannel } from "../services/slack-channel-guard.service";
 import { giveKudos } from "../services/kudos.service";
 import { getLeaderboard, getUserStatsBySlackId } from "../services/stats.service";
 import type { SlackCommandPayload } from "../types/slack";
@@ -44,12 +45,18 @@ export const handleSlackCommand = async (req: Request, res: Response): Promise<v
       case "/kudos": {
         const parsed = await resolveKudosSlashText(payload.text ?? "");
         logKudosParsed(parsed);
+        const channel = await assertKudosAllowedInChannel(
+          payload.channel_id,
+          payload.channel_name,
+        );
         const result = await giveKudos({
           giverSlackUserId: payload.user_id,
           giverDisplayName: payload.user_name,
           receiverSlackUserId: parsed.receiverSlackUserId,
           points: parsed.points,
           message: parsed.message,
+          slackChannelId: channel.channelId,
+          slackChannelName: channel.channelName,
         });
         sendSlackCommandJson(res, {
           response_type: "in_channel",

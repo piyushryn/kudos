@@ -114,6 +114,8 @@ export const getAuditLog = async (page = 1, pageSize = 25) => {
       createdAt: item.createdAt,
       points: item.points,
       message: item.message,
+      channelId: item.channelId,
+      channelName: item.channelName,
       giver: item.giver,
       receiver: item.receiver,
     })),

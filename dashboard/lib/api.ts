@@ -45,6 +45,8 @@ export type AuditLogResponse = {
     createdAt: string;
     points: number;
     message: string;
+    channelId: string | null;
+    channelName: string | null;
     giver: { slackUserId: string; displayName: string };
     receiver: { slackUserId: string; displayName: string };
   }>;
