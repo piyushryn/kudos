@@ -9,7 +9,7 @@ type KudosSuccessParams = {
 
 const getKudosImageUrl = (params: KudosSuccessParams): string =>{
   const baseImageUrl = 'https://stage-ik.imagekit.io/rtsmrscto/DO%20NOT%20DELETE/brand.png'
-  const transformation = `l-text,ff-Amaranth,w-600,i-${params.receiverDisplayName}%20just%20scored%2050%20kudos%20points%20from%20${params.giverDisplayName}.%20Good%20job.,lfo-centre,fs-bh_div_15,co-white,ia-center,pa-bh_div_40,l-end`
+  const transformation = `l-text,ff-Amaranth,w-600,i-${params.receiverDisplayName}%20just%20scored%20${params.points}%20kudos%20points%20from%20${params.giverDisplayName}.%20Good%20job.,lfo-centre,fs-bh_div_15,co-white,ia-center,pa-bh_div_40,l-end`
   return `${baseImageUrl}?tr=${transformation}`
 }
 
