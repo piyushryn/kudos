@@ -8,3 +8,11 @@ server/dist
 dashboard/.next
 server/node_modules
 dashboard/node_modules
+
+# TLS material for nginx (keep paths private)
+nginx/ssl/*.pem
+nginx/ssl/*.key
+
+# Let's Encrypt data (private keys — never commit)
+certbot/conf/
+certbot/www/.well-known/

@@ -1,0 +1,51 @@
+{
+  "display_information": {
+    "name": "Kudos",
+    "description": "Give kudos from a fixed monthly allowance. Receiving kudos does not increase giving power.",
+    "background_color": "#4A154B"
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "Kudos",
+      "always_online": false
+    },
+    "slash_commands": [
+      {
+        "command": "/kudos",
+        "url": "http://http://52.66.29.42:3000/slack/commands",
+        "description": "Give kudos to a teammate",
+        "usage_hint": "@user points message",
+        "should_escape": false
+      },
+      {
+        "command": "/kudos-balance",
+        "url": "http://http://52.66.29.42:3000/slack/commands",
+        "description": "Show your remaining monthly kudos balance",
+        "should_escape": false
+      },
+      {
+        "command": "/kudos-leaderboard",
+        "url": "http://http://52.66.29.42:3000/slack/commands",
+        "description": "Top givers and top receivers",
+        "usage_hint": "[optional limit 1-25]",
+        "should_escape": false
+      },
+      {
+        "command": "/kudos-stats",
+        "url": "http://http://52.66.29.42:3000/slack/commands",
+        "description": "Your stats: given vs received and remaining balance",
+        "should_escape": false
+      }
+    ]
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": ["commands", "users:read"]
+    }
+  },
+  "settings": {
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+}

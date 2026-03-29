@@ -32,6 +32,19 @@ Notes:
 - Set real `SLACK_SIGNING_SECRET` and `SLACK_BOT_TOKEN` in root `.env`.
 - Stop stack with `docker compose down` (add `-v` to remove DB volume).
 
+### Nginx (single hostname for UI + API)
+
+Compose includes **`nginx`** as a reverse proxy for **`kudos.piyusharyan.xyz`**:
+
+- `http://kudos.piyusharyan.xyz/` → dashboard
+- `http://kudos.piyusharyan.xyz/slack/commands` → API (use HTTPS in production; see `nginx/README.md`)
+- `http://kudos.piyusharyan.xyz/api/...` → API
+- `http://kudos.piyusharyan.xyz/health` → API health
+
+Point DNS **A record** `kudos.piyusharyan.xyz` at your server. For **free** trusted TLS, use **Let’s Encrypt** — see [`certbot/README.md`](certbot/README.md). For nginx routing details, see [`nginx/README.md`](nginx/README.md).
+
+The dashboard container still calls the API internally at `http://server:4000` (no need to change `DASHBOARD_API_BASE_URL` for Docker).
+
 ## Prerequisites
 
 - Node.js 20+
