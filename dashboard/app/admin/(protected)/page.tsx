@@ -13,8 +13,8 @@ export default function AdminHomePage() {
       <div className="stack" style={{ gap: "1.25rem" }}>
         <div className="heroCard">
           <p className="heroLead">
-            Use the sidebar for admin tools. The leaderboard is available to everyone; all other pages require the
-            internal API token. Open any member via their Slack user ID.
+            You’re signed in to the admin area. The leaderboard remains public; this dashboard also uses the API{" "}
+            <code>INTERNAL_API_TOKEN</code> for server actions. Open any member via their Slack user ID.
           </p>
           <div className="heroActions">
             <Link href="/leaderboard" className="button">

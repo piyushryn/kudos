@@ -100,17 +100,22 @@ npm install
 npm run dev
 ```
 
-Required env vars in `dashboard/.env.local`:
+Required env vars in `dashboard/.env.local` (see `dashboard/.env.example`):
 
 - `DASHBOARD_API_BASE_URL` (example `http://localhost:4000`)
-- `INTERNAL_API_TOKEN` (same value as backend)
+- `INTERNAL_API_TOKEN` (same value as backend; used server-side for API calls)
+- `DASHBOARD_ADMIN_USERNAME` / `DASHBOARD_ADMIN_PASSWORD` — browser login for all `/admin/*` pages except `/admin/login`
+- `DASHBOARD_AUTH_SECRET` — at least 16 characters; signs the httpOnly session cookie (not the same as `INTERNAL_API_TOKEN`, but should be random)
+
+Docker Compose passes the same three login variables into the dashboard container (defaults exist for local use; override in `.env` for production).
 
 Dashboard pages:
 
 - `/leaderboard` — team leaderboard (only route outside `/admin`)
 - `/` — redirects to `/admin`
-- `/admin` — dashboard home
-- `/admin/audit-log`, `/admin/categories`, `/admin/users`, `/admin/quotas`
+- `/admin` — dashboard home (requires dashboard login)
+- `/admin/login` — sign in
+- `/admin/audit-log`, `/admin/categories`, `/admin/users`, `/admin/quotas` (require login)
 - `/users/:slackUserId` — per-user stats
 
 Legacy `/audit-log` redirects to `/admin/audit-log`.

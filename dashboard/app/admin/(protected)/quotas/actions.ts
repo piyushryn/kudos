@@ -89,7 +89,9 @@ export async function bulkCategoryFormAction(formData: FormData): Promise<void> 
       body: JSON.stringify({ slackUserIds, userCategoryId }),
     });
     const updated =
-      typeof body === "object" && body !== null && "updated" in body ? Number((body as { updated: number }).updated) : slackUserIds.length;
+      typeof body === "object" && body !== null && "updated" in body
+        ? Number((body as { updated: number }).updated)
+        : slackUserIds.length;
     revalidatePath("/admin/quotas");
     redirect("/admin/quotas?notice=" + encodeURIComponent(`Category applied (${updated} user row(s) updated).`));
   } catch (e) {

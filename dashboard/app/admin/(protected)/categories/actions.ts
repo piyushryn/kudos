@@ -75,7 +75,10 @@ export async function updateCategoryAction(formData: FormData): Promise<void> {
   }
   const monthlyQuota = quotaRaw === "" ? null : Number(quotaRaw);
   if (quotaRaw !== "" && (!Number.isInteger(monthlyQuota) || monthlyQuota! <= 0)) {
-    redirect("/admin/categories?error=" + encodeURIComponent("Quota must be a positive whole number or left empty for workspace default."));
+    redirect(
+      "/admin/categories?error=" +
+        encodeURIComponent("Quota must be a positive whole number or left empty for workspace default."),
+    );
   }
   try {
     await adminJson(`/admin/user-categories/${encodeURIComponent(id)}`, {

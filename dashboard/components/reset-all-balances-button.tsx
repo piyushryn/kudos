@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { resetAllBalancesAction } from "@/app/admin/quotas/actions";
+import { resetAllBalancesAction } from "@/app/admin/(protected)/quotas/actions";
 
 export function ResetAllBalancesButton() {
   const router = useRouter();

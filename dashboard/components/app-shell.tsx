@@ -57,6 +57,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const closeMobile = useCallback(() => setMobileOpen(false), []);
 
+  const showAdminLogout = pathname.startsWith("/admin") && pathname !== "/admin/login";
+
   return (
     <div className="appShell">
       {mobileOpen ? (
@@ -99,6 +101,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             ))}
           </nav>
+
+          {showAdminLogout ? (
+            <div className="sidebarFooter">
+              <form action="/admin/logout" method="post">
+                <button type="submit" className="sidebarLogoutBtn">
+                  Log out
+                </button>
+              </form>
+            </div>
+          ) : null}
         </div>
       </aside>
 
