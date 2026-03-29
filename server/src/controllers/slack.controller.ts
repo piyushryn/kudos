@@ -1,6 +1,12 @@
 import type { Request, Response } from "express";
 
 import {
+  logKudosParsed,
+  logSlackAppValidation,
+  logSlackCommandError,
+  sendSlackCommandJson,
+} from "../slack/command-logging";
+import {
   formatBalanceMessage,
   formatKudosErrorMessage,
   formatKudosSuccessMessage,
@@ -25,7 +31,7 @@ const parseLeaderboardLimit = (text: string): number => {
 };
 
 const respondEphemeral = (res: Response, text: string) =>
-  res.status(200).json({
+  sendSlackCommandJson(res, {
     response_type: "ephemeral",
     text,
   });
@@ -37,6 +43,7 @@ export const handleSlackCommand = async (req: Request, res: Response): Promise<v
     switch (payload.command) {
       case "/kudos": {
         const parsed = parseKudosCommand(payload.text ?? "");
+        logKudosParsed(parsed);
         const result = await giveKudos({
           giverSlackUserId: payload.user_id,
           giverDisplayName: payload.user_name,
@@ -44,7 +51,7 @@ export const handleSlackCommand = async (req: Request, res: Response): Promise<v
           points: parsed.points,
           message: parsed.message,
         });
-        res.status(200).json({
+        sendSlackCommandJson(res, {
           response_type: "in_channel",
           text: formatKudosSuccessMessage(result),
         });
@@ -71,7 +78,7 @@ export const handleSlackCommand = async (req: Request, res: Response): Promise<v
       case "/kudos-leaderboard": {
         const limit = parseLeaderboardLimit(payload.text ?? "");
         const data = await getLeaderboard(limit);
-        res.status(200).json({
+        sendSlackCommandJson(res, {
           response_type: "ephemeral",
           text: formatLeaderboardMessage(data.topGivers, data.topReceivers),
         });
@@ -83,9 +90,18 @@ export const handleSlackCommand = async (req: Request, res: Response): Promise<v
     }
   } catch (error) {
     if (error instanceof AppError) {
+      logSlackAppValidation(error.message, {
+        command: payload.command,
+        text: payload.text,
+      });
       respondEphemeral(res, formatKudosErrorMessage(error.message));
       return;
     }
+    logSlackCommandError(error, {
+      command: payload.command,
+      text: payload.text,
+      userId: payload.user_id,
+    });
     respondEphemeral(res, formatKudosErrorMessage("Unexpected error while processing command."));
   }
 };

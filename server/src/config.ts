@@ -21,6 +21,10 @@ const envSchema = z.object({
   CRON_MONTHLY_RESET: z.string().default("0 2 1 * *"),
   INTERNAL_API_TOKEN: z.string().min(1).optional(),
   DASHBOARD_API_BASE_URL: z.url().optional(),
+  SLACK_VERBOSE_LOGGING: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
 });
 
 export const config = envSchema.parse(process.env);

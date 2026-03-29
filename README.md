@@ -130,6 +130,14 @@ Create an internal Slack app and configure:
 
 ## Slash Command Behavior
 
+### Debugging Slack commands
+
+The API logs Slack traffic with `subsystem: "slack"` (search logs for `slack_command_inbound`, `slack_command_response`, `slack_signature_rejected`, `kudos_command_parsed`, `slack_command_error`).
+
+- Set `SLACK_VERBOSE_LOGGING=true` (default) for full JSON responses, redacted raw body preview, and per-character code points for the `text` field (helps spot invisible characters).
+- Set `SLACK_VERBOSE_LOGGING=false` to shorten logs while keeping structured request/response objects.
+- Secrets in the form body (`token`, `response_url`, `trigger_id`) are always redacted in logs.
+
 ### `/kudos @user points message`
 
 Example:
