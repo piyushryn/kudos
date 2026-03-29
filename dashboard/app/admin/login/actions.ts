@@ -10,6 +10,7 @@ import {
   credentialsMatch,
   isDashboardAuthConfigured,
 } from "@/lib/admin-session";
+import { runtimeEnv } from "@/lib/runtime-env";
 
 function sanitizeNext(raw: string | undefined): string {
   if (!raw || !raw.startsWith("/admin") || raw.startsWith("//")) {
@@ -30,9 +31,9 @@ export async function loginAction(formData: FormData): Promise<void> {
     );
   }
 
-  const expectedUser = process.env.DASHBOARD_ADMIN_USERNAME ?? "";
-  const expectedPass = process.env.DASHBOARD_ADMIN_PASSWORD ?? "";
-  const secret = process.env.DASHBOARD_AUTH_SECRET ?? "";
+  const expectedUser = runtimeEnv("DASHBOARD_ADMIN_USERNAME") ?? "";
+  const expectedPass = runtimeEnv("DASHBOARD_ADMIN_PASSWORD") ?? "";
+  const secret = runtimeEnv("DASHBOARD_AUTH_SECRET") ?? "";
 
   if (!credentialsMatch(username, password, expectedUser, expectedPass)) {
     redirect(

@@ -1,13 +1,15 @@
 import { createHash, createHmac, timingSafeEqual } from "crypto";
 
+import { runtimeEnv } from "@/lib/runtime-env";
+
 export const ADMIN_SESSION_COOKIE = "kudos_admin_session";
 
 export const SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 7;
 
 export function isDashboardAuthConfigured(): boolean {
-  const u = process.env.DASHBOARD_ADMIN_USERNAME?.trim();
-  const p = process.env.DASHBOARD_ADMIN_PASSWORD;
-  const s = process.env.DASHBOARD_AUTH_SECRET?.trim();
+  const u = runtimeEnv("DASHBOARD_ADMIN_USERNAME")?.trim();
+  const p = runtimeEnv("DASHBOARD_ADMIN_PASSWORD");
+  const s = runtimeEnv("DASHBOARD_AUTH_SECRET")?.trim();
   return Boolean(u && p !== undefined && p.length > 0 && s && s.length >= 16);
 }
 

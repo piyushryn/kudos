@@ -3,6 +3,8 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { ResetAllBalancesButton } from "@/components/reset-all-balances-button";
 
+import { runtimeEnv } from "@/lib/runtime-env";
+
 import {
   assignUserCategoryFormAction,
   bulkCategoryFormAction,
@@ -19,8 +21,8 @@ type AdminUserCategory = {
 type CategoryListResponse = { categories: AdminUserCategory[] } | { error: string };
 
 async function loadCategoryOptions(): Promise<CategoryListResponse> {
-  const base = (process.env.DASHBOARD_API_BASE_URL ?? "http://localhost:4000").replace(/\/$/, "");
-  const token = process.env.INTERNAL_API_TOKEN;
+  const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
+  const token = runtimeEnv("INTERNAL_API_TOKEN");
   if (!token) {
     return { error: "INTERNAL_API_TOKEN is not set." };
   }

@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { runtimeEnv } from "@/lib/runtime-env";
+
 function adminOrigin(): { base: string; token: string } {
-  const base = (process.env.DASHBOARD_API_BASE_URL ?? "http://localhost:4000").replace(/\/$/, "");
-  const token = process.env.INTERNAL_API_TOKEN ?? "";
+  const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
+  const token = runtimeEnv("INTERNAL_API_TOKEN") ?? "";
   if (!token) {
     throw new Error("INTERNAL_API_TOKEN is not set for the dashboard.");
   }

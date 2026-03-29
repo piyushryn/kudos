@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
 
+import { runtimeEnv } from "@/lib/runtime-env";
+
 import { createCategoryAction, updateCategoryAction } from "./actions";
 import { DeleteCategoryButton } from "./delete-category-button";
 
@@ -14,8 +16,8 @@ type CategoryRow = {
 };
 
 async function loadCategories(): Promise<{ categories: CategoryRow[] } | { error: string }> {
-  const base = (process.env.DASHBOARD_API_BASE_URL ?? "http://localhost:4000").replace(/\/$/, "");
-  const token = process.env.INTERNAL_API_TOKEN;
+  const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
+  const token = runtimeEnv("INTERNAL_API_TOKEN");
   if (!token) {
     return { error: "INTERNAL_API_TOKEN is not set." };
   }

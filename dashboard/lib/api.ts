@@ -1,11 +1,14 @@
-const apiBaseUrl = process.env.DASHBOARD_API_BASE_URL ?? "http://localhost:4000";
+import { runtimeEnv } from "@/lib/runtime-env";
+
+const apiBaseUrl = runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000";
 
 const getHeaders = (): HeadersInit => {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
   };
-  if (process.env.INTERNAL_API_TOKEN) {
-    headers.Authorization = `Bearer ${process.env.INTERNAL_API_TOKEN}`;
+  const token = runtimeEnv("INTERNAL_API_TOKEN");
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
   return headers;
 };

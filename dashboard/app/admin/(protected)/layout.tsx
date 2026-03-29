@@ -6,6 +6,7 @@ import {
   isDashboardAuthConfigured,
   verifySessionToken,
 } from "@/lib/admin-session";
+import { runtimeEnv } from "@/lib/runtime-env";
 
 const PATH_HEADER = "x-dashboard-admin-path";
 
@@ -23,7 +24,7 @@ export default async function ProtectedAdminLayout({
     );
   }
 
-  const secret = process.env.DASHBOARD_AUTH_SECRET!;
+  const secret = runtimeEnv("DASHBOARD_AUTH_SECRET")!;
   const jar = await cookies();
   const token = jar.get(ADMIN_SESSION_COOKIE)?.value;
 

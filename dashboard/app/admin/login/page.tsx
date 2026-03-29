@@ -9,6 +9,8 @@ import {
   verifySessionToken,
 } from "@/lib/admin-session";
 
+import { runtimeEnv } from "@/lib/runtime-env";
+
 import { loginAction } from "./actions";
 
 function sanitizeNext(raw: string | undefined): string {
@@ -25,7 +27,7 @@ export default async function AdminLoginPage({
 }) {
   const sp = await searchParams;
   const next = sanitizeNext(sp.next);
-  const secret = process.env.DASHBOARD_AUTH_SECRET ?? "";
+  const secret = runtimeEnv("DASHBOARD_AUTH_SECRET") ?? "";
   const jar = await cookies();
   if (secret && verifySessionToken(jar.get(ADMIN_SESSION_COOKIE)?.value, secret)) {
     redirect(next);
