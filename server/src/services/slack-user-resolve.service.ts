@@ -41,10 +41,9 @@ export const resolveSlackUserIdFromHandle = async (handle: string): Promise<stri
   let cursor: string | undefined;
 
   for (let page = 0; page < 40; page += 1) {
-    const res = await slackClient.users.list({
-      limit: 200,
-      cursor: cursor || undefined,
-    });
+    const res = await slackClient.users.list(
+      cursor ? { limit: 200, cursor } : { limit: 200 },
+    );
 
     if (!res.ok || !res.members) {
       break;
