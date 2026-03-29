@@ -111,7 +111,8 @@ export default async function AdminQuotasPage({
   const [data, catData] = await Promise.all([loadAdminUsers(search, page), loadCategoryOptions()]);
   const categories = "categories" in catData ? catData.categories : undefined;
   const categoryLoadError = "error" in catData ? catData.error : undefined;
-  const assignFormsEnabled = Boolean(categories?.length);
+  const categoryOptions =
+    categories !== undefined && categories.length > 0 ? categories : null;
 
   return (
     <div className="stack">
@@ -133,18 +134,18 @@ export default async function AdminQuotasPage({
         <p className="muted">
           Slack User ID looks like <code>U09ABCDEF12</code>.
         </p>
-        {!assignFormsEnabled && !categoryLoadError ? (
+        {!categoryOptions && !categoryLoadError ? (
           <p className="muted">
             No categories available. Add them on <Link href="/admin/categories">Admin · Categories</Link>.
           </p>
         ) : null}
-        {assignFormsEnabled ? (
+        {categoryOptions ? (
           <form action={assignUserCategoryFormAction} className="formGrid">
             <label>
               Slack User ID
               <input name="slackUserId" type="text" required placeholder="U09ABCDEF12" className="input" />
             </label>
-            {categorySelect(categories)}
+            {categorySelect(categoryOptions)}
             <button type="submit" className="button">
               Assign category
             </button>
@@ -164,13 +165,13 @@ export default async function AdminQuotasPage({
       <section className="card">
         <h2>Bulk assign category</h2>
         <p className="muted">One Slack User ID per line (or comma-separated). Only existing users are updated.</p>
-        {assignFormsEnabled ? (
+        {categoryOptions ? (
           <form action={bulkCategoryFormAction} className="stack">
             <label>
               Slack User IDs
               <textarea name="slackUserIds" rows={6} className="textarea" placeholder={"U09AAA\nU09BBB"} required />
             </label>
-            {categorySelect(categories)}
+            {categorySelect(categoryOptions)}
             <button type="submit" className="button">
               Apply category to listed users
             </button>
