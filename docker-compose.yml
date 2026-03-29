@@ -70,6 +70,10 @@ services:
     container_name: kudos-dashboard
     depends_on:
       - server
+    # Project-root .env (optional); explicit keys below still win.
+    env_file:
+      - path: .env
+        required: false
     environment:
       NODE_ENV: production
       DASHBOARD_API_BASE_URL: http://server:4000
