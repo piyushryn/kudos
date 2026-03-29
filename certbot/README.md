@@ -25,7 +25,7 @@
      certbot/certbot certonly --webroot \
      -w /var/www/certbot \
      -d kudos.piyusharyan.xyz \
-     --email you@yourdomain.com \
+     --email piyush@imagekit.io \
      --agree-tos \
      --non-interactive
    ```
