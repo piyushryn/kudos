@@ -23,6 +23,7 @@ export const navigation: NavSection[] = [
       { href: "/admin/categories", label: "User categories" },
       { href: "/admin/users", label: "Users" },
       { href: "/admin/quotas", label: "Quotas & balances" },
+      { href: "/admin/leaderboard-reset", label: "Leaderboard reset" },
     ],
   },
 ];

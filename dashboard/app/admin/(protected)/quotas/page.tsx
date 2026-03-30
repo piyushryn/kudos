@@ -104,6 +104,7 @@ export default async function AdminQuotasPage({
           API server).
         </p>
 
+        <div className="grid">
         <section className="card">
           <h2 className="cardTitle">One user</h2>
           <p className="muted" style={{ marginBottom: "1rem" }}>
@@ -135,7 +136,7 @@ export default async function AdminQuotasPage({
               Slack User ID (reset balance)
               <input name="slackUserId" type="text" required placeholder="U09ABCDEF12" className="input" />
             </label>
-            <button type="submit" className="button secondaryButton">
+            <button type="submit" className="button secondaryButton wideFormButton">
               Reset this user’s balance (current month → full quota)
             </button>
           </form>
@@ -147,7 +148,7 @@ export default async function AdminQuotasPage({
             One Slack User ID per line (or comma-separated). Only existing users are updated.
           </p>
           {categoryOptions ? (
-            <form action={bulkCategoryFormAction} className="stack">
+            <form action={bulkCategoryFormAction} className="formStack">
               <label>
                 Slack User IDs
                 <textarea name="slackUserIds" rows={6} className="textarea" placeholder={"U09AAA\nU09BBB"} required />
@@ -168,6 +169,7 @@ export default async function AdminQuotasPage({
           </p>
           <ResetAllBalancesButton />
         </section>
+        </div>
       </div>
     </>
   );

@@ -34,14 +34,13 @@ export default async function AdminUsersPage({
 
         {"error" in data ? null : (
           <>
-            <form method="get" className="row">
+            <form method="get" className="row formRowBar">
               <input
                 name="search"
                 type="search"
                 placeholder="Search name or Slack ID"
                 defaultValue={search}
                 className="input"
-                style={{ flex: 1, maxWidth: "min(100%, 360px)" }}
               />
               <input type="hidden" name="page" value="1" />
               <button type="submit" className="button secondaryButton">

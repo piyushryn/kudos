@@ -9,6 +9,7 @@ type Props = {
 export function DeleteCategoryButton({ categoryId }: Props) {
   return (
     <form
+      className="tableActionForm"
       action={deleteCategoryAction}
       onSubmit={(e) => {
         if (!confirm("Delete this category? It must have no users assigned.")) {

@@ -8,6 +8,10 @@ import {
   postResetUserBalanceHandler,
 } from "../controllers/admin-balance.controller";
 import {
+  postResetLeaderboardAllHandler,
+  postResetLeaderboardUserHandler,
+} from "../controllers/admin-leaderboard.controller";
+import {
   deleteUserCategoryHandler,
   listUserCategoriesHandler,
   patchUserCategoryHandler,
@@ -32,3 +36,5 @@ adminRouter.patch("/users/:slackUserId/category", asyncHandler(assignSlackUserCa
 adminRouter.post("/users/:slackUserId/reset-balance", asyncHandler(postResetUserBalanceHandler));
 adminRouter.post("/users/bulk-category", asyncHandler(postBulkCategoryHandler));
 adminRouter.post("/balances/reset-all", asyncHandler(postResetAllBalancesHandler));
+adminRouter.post("/leaderboard/reset-all", asyncHandler(postResetLeaderboardAllHandler));
+adminRouter.post("/leaderboard/reset-user", asyncHandler(postResetLeaderboardUserHandler));

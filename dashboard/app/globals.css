@@ -1,4 +1,8 @@
 :root {
+  --form-max-width: 600px;
+  --form-button-max-width: 280px;
+  --form-button-wide-max: 420px;
+
   --font-sans: var(--font-dm-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
@@ -392,6 +396,11 @@ a {
   gap: 1rem;
 }
 
+.pageShellNarrow {
+  width: 100%;
+  max-width: min(var(--form-max-width), 100%);
+}
+
 .row {
   display: flex;
   gap: 0.75rem;
@@ -405,6 +414,10 @@ a {
   gap: 1.25rem;
 }
 
+.grid > .card {
+  min-width: 0;
+}
+
 /* ——— Cards ——— */
 .card {
   background: var(--bg-surface);
@@ -412,6 +425,15 @@ a {
   border-radius: var(--radius-lg);
   padding: 1.25rem 1.35rem;
   box-shadow: var(--shadow-card);
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Form cards: main column is full-width; without this, .stack stretches every .card while .formGrid stays 600px. */
+.stack > .card:where(:has(.formGrid), :has(.formStack), :has(.formActions)) {
+  align-self: flex-start;
+  width: 100%;
+  max-width: min(var(--form-max-width), 100%);
 }
 
 .cardTitle {
@@ -482,6 +504,50 @@ a {
   color: var(--accent);
 }
 
+.list li.leaderboardEntry {
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.leaderboardEntryName {
+  flex: 1;
+  min-width: 0;
+}
+
+.leaderboardRowActions {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.buttonSmall {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.leaderboardAdminToolbar {
+  margin-bottom: 1rem;
+}
+
+.leaderboardAdminToolbarGrid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.leaderboardAdminToolbarGrid > * {
+  min-width: 0;
+  max-width: min(var(--form-max-width), 100%);
+}
+
+@media (min-width: 640px) {
+  .leaderboardAdminToolbarGrid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
 /* ——— Tables ——— */
 .tableWrapper {
   overflow-x: auto;
@@ -537,14 +603,19 @@ a {
 }
 
 /* ——— Forms ——— */
-.formGrid {
+.formGrid,
+.formStack {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  max-width: 440px;
+  width: 100%;
+  max-width: min(var(--form-max-width), 100%);
+  box-sizing: border-box;
+  align-items: stretch;
 }
 
 .formGrid label,
+.formStack label,
 .stack label {
   display: flex;
   flex-direction: column;
@@ -552,6 +623,82 @@ a {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-secondary);
+  min-width: 0;
+  width: 100%;
+}
+
+.formRowBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: min(var(--form-max-width), 100%);
+  box-sizing: border-box;
+}
+
+.formRowBar .input {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.formRowBar .button {
+  flex-shrink: 0;
+  max-width: min(100%, var(--form-button-max-width));
+}
+
+.tableInlineForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.tableInlineForm .input[type="text"] {
+  flex: 1 1 10rem;
+  min-width: 0;
+  max-width: 16rem;
+}
+
+.tableInlineForm .input[type="number"] {
+  flex: 0 0 5.5rem;
+  width: 5.5rem;
+  max-width: 6.5rem;
+}
+
+.tableInlineForm .button {
+  flex-shrink: 0;
+  max-width: min(100%, var(--form-button-max-width));
+}
+
+.tableActionForm {
+  display: inline-block;
+  max-width: 100%;
+}
+
+.tableActionForm .button {
+  max-width: min(100%, var(--form-button-max-width));
+}
+
+form.card.formGrid {
+  width: 100%;
+  max-width: min(var(--form-max-width), 100%);
+  box-sizing: border-box;
+}
+
+.formActions {
+  width: 100%;
+  max-width: min(var(--form-max-width), 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.formActions .button {
+  max-width: min(100%, var(--form-button-max-width));
 }
 
 .input,
@@ -564,6 +711,18 @@ select.input {
   background: var(--bg-surface);
   color: var(--text-primary);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.formGrid .input,
+.formGrid .textarea,
+.formGrid select.input,
+.formStack .input,
+.formStack .textarea,
+.formStack select.input {
+  width: 100%;
+  min-width: 0;
 }
 
 .input:focus,
@@ -596,6 +755,21 @@ select.input:focus {
   cursor: pointer;
   transition: background 0.15s ease, transform 0.1s ease;
   text-decoration: none;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.formGrid > .button,
+.formGrid > button.button,
+.formStack > .button,
+.formStack > button.button {
+  align-self: flex-start;
+  max-width: min(100%, var(--form-button-max-width));
+}
+
+.formGrid > .button.wideFormButton,
+.formStack > .button.wideFormButton {
+  max-width: min(100%, var(--form-button-wide-max));
 }
 
 .button:hover {

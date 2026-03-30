@@ -113,7 +113,7 @@ Dashboard pages:
 - `/` — redirects to `/admin`
 - `/admin` — dashboard home (requires dashboard login)
 - `/admin/login` — sign in
-- `/admin/audit-log`, `/admin/categories`, `/admin/users`, `/admin/quotas` (require login)
+- `/admin/audit-log`, `/admin/categories`, `/admin/users`, `/admin/quotas`, `/admin/leaderboard-reset` (require login)
 - `/users/:slackUserId` — per-user stats
 
 Legacy `/audit-log` redirects to `/admin/audit-log`.
@@ -194,7 +194,7 @@ Shows caller totals: given vs received + current remaining balance.
 
 - Table **`user_categories`**: `key` (unique, e.g. `employee`), `name`, optional `monthly_giving_quota` (null = use `DEFAULT_MONTHLY_BALANCE`).
 - Migration seeds **`employee`**; new Slack users are linked to that category automatically.
-- Dashboard: **`/leaderboard`** is the only UI route outside **`/admin`**; everything else (home, audit log, categories, users, quotas) lives under **`/admin/*`** (same auth — `INTERNAL_API_TOKEN` on server actions where applicable).
+- Dashboard: **`/leaderboard`** is the only UI route outside **`/admin`**; everything else (home, audit log, categories, users, quotas, leaderboard reset) lives under **`/admin/*`** (same auth — `INTERNAL_API_TOKEN` on server actions where applicable).
   - **`/admin/categories`** — create/edit/delete categories (delete only when no users use the category; `employee` cannot be deleted).
   - **`/admin/users`** — searchable user table (category, quotas, remaining balance); links to per-user stats.
   - **`/admin/quotas`** — assign categories, reset balances, bulk actions, reset all.
@@ -214,6 +214,8 @@ Shows caller totals: given vs received + current remaining balance.
 - `PATCH /admin/users/:slackUserId/category` — body `{ "userCategoryId": "<cuid>" }`
 - `POST /admin/users/:slackUserId/reset-balance` — refill current month to effective quota
 - `POST /admin/users/bulk-category` — body `{ "slackUserIds": ["U…"], "userCategoryId": "<cuid>" }`
+- `POST /admin/leaderboard/reset-all` — delete all `kudos_transactions` (leaderboard + audit log)
+- `POST /admin/leaderboard/reset-user` — body `{ "userId": "<cuid>" }` or `{ "slackUserId": "U…" }` — delete transactions where that user gave or received
 - `POST /admin/balances/reset-all` — reset **all** users’ current-month balances to effective quota
 
 All `/admin/*` routes require `Authorization: Bearer <INTERNAL_API_TOKEN>` (same token as `/api/*`).

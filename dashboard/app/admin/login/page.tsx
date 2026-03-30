@@ -35,7 +35,7 @@ export default async function AdminLoginPage({
         description="Sign in to manage categories, users, quotas, and the audit log. The leaderboard stays public."
       />
 
-      <div className="stack" style={{ maxWidth: "420px" }}>
+      <div className="stack pageShellNarrow">
         {errorParam ? <p className="errorBanner">{errorParam}</p> : null}
 
         <form action={loginAction} className="card formGrid">

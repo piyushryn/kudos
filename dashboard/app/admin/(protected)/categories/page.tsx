@@ -115,7 +115,7 @@ export default async function AdminCategoriesPage({
                         <code>{c.key}</code>
                       </td>
                       <td>
-                        <form action={updateCategoryAction} className="row" style={{ gap: "0.5rem", flexWrap: "wrap" }}>
+                        <form action={updateCategoryAction} className="tableInlineForm">
                           <input type="hidden" name="categoryId" value={c.id} />
                           <input
                             name="name"
@@ -123,7 +123,6 @@ export default async function AdminCategoriesPage({
                             defaultValue={c.name}
                             required
                             className="input"
-                            style={{ minWidth: "140px" }}
                           />
                           <input
                             name="quota"
@@ -132,7 +131,6 @@ export default async function AdminCategoriesPage({
                             placeholder="Default"
                             defaultValue={c.monthlyGivingQuota ?? ""}
                             className="input"
-                            style={{ width: "120px" }}
                           />
                           <button type="submit" className="button secondaryButton">
                             Save
