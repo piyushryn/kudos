@@ -2,9 +2,9 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 
 import {
-  deleteAllKudosTransactions,
-  deleteKudosTransactionsForSlackUserId,
-  deleteKudosTransactionsForUserId,
+  performFullLeaderboardReset,
+  performUserLeaderboardResetBySlackId,
+  performUserLeaderboardResetByUserId,
 } from "../services/leaderboard-reset.service";
 
 const resetUserBodySchema = z.union([
@@ -13,7 +13,7 @@ const resetUserBodySchema = z.union([
 ]);
 
 export const postResetLeaderboardAllHandler = async (_req: Request, res: Response): Promise<void> => {
-  const result = await deleteAllKudosTransactions();
+  const result = await performFullLeaderboardReset();
   res.status(200).json({ ok: true, ...result });
 };
 
@@ -27,7 +27,7 @@ export const postResetLeaderboardUserHandler = async (req: Request, res: Respons
   }
   const result =
     "userId" in parsed.data
-      ? await deleteKudosTransactionsForUserId(parsed.data.userId)
-      : await deleteKudosTransactionsForSlackUserId(parsed.data.slackUserId);
+      ? await performUserLeaderboardResetByUserId(parsed.data.userId)
+      : await performUserLeaderboardResetBySlackId(parsed.data.slackUserId);
   res.status(200).json({ ok: true, ...result });
 };

@@ -19,7 +19,7 @@ export function LeaderboardResetUserButton({ userId, displayName }: Props) {
     setError("");
     if (
       !window.confirm(
-        `Remove all kudos where ${displayName} gave or received points? This updates the leaderboard and removes those audit rows.`,
+        `Reset leaderboard totals for ${displayName}? Their past kudos stay in the audit log and a new admin entry is added; those rows stop counting toward totals.`,
       )
     ) {
       return;

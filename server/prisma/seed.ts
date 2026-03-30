@@ -2,7 +2,19 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+const SYSTEM_AUDIT_SLACK_USER_ID = "USLACK_SYSTEM_KUDOS_AUDIT";
+
 const main = async (): Promise<void> => {
+  await prisma.user.upsert({
+    where: { slackUserId: SYSTEM_AUDIT_SLACK_USER_ID },
+    update: { displayName: "System (admin audit)" },
+    create: {
+      slackUserId: SYSTEM_AUDIT_SLACK_USER_ID,
+      displayName: "System (admin audit)",
+      userCategory: { connect: { key: "employee" } },
+    },
+  });
+
   const users = [
     { slackUserId: "U_DEMO_PIYUSH", displayName: "Piyush" },
     { slackUserId: "U_DEMO_RAHUL", displayName: "Rahul" },

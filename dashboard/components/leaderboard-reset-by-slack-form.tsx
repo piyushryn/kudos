@@ -20,7 +20,7 @@ export function LeaderboardResetBySlackForm() {
         const slackUserId = String(fd.get("slackUserId") ?? "").trim();
         if (
           !window.confirm(
-            `Remove all kudos where Slack user ${slackUserId || "(empty)"} gave or received?`,
+            `Reset leaderboard totals for Slack user ${slackUserId || "(empty)"}? Past kudos stay in the audit log; a new admin entry is added.`,
           )
         ) {
           return;

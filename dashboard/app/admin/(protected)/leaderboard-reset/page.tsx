@@ -12,7 +12,7 @@ export default async function AdminLeaderboardResetPage() {
     <>
       <PageHeader
         title="Leaderboard reset"
-        description="Remove kudos transactions to clear all-time totals. Public leaderboard is unchanged here — open it in a new tab if you want to compare."
+        description="Clear displayed all-time totals by excluding past kudos from counts and appending an admin line to the audit log. Historical rows are never deleted. Open the public leaderboard in another tab to compare."
       />
 
       <p className="muted" style={{ marginBottom: "1rem" }}>

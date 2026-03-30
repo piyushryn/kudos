@@ -49,12 +49,15 @@ export type UserStatsResponse = {
   workspaceDefaultMonthlyBalance: number;
 };
 
+export type AuditLogEntryKind = "KUDO" | "ADMIN_RESET_USER" | "ADMIN_RESET_ALL";
+
 export type AuditLogResponse = {
   page: number;
   pageSize: number;
   total: number;
   items: Array<{
     id: string;
+    kind: AuditLogEntryKind;
     createdAt: string;
     points: number;
     message: string;

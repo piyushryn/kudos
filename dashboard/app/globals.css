@@ -602,6 +602,22 @@ a {
   white-space: nowrap;
 }
 
+.auditRowMeta td {
+  background: #f9fafb;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.auditKindPill {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 /* ——— Forms ——— */
 .formGrid,
 .formStack {

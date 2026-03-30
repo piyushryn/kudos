@@ -1,3 +1,5 @@
+import { KudosEntryKind } from "@prisma/client";
+
 import { config } from "../config";
 import { prisma } from "../db/prisma";
 import { getMonthYear, startOfUtcDay, endOfUtcDay } from "../utils/date";
@@ -49,6 +51,8 @@ const validateDailyReceiverCap = async (receiverId: string, points: number): Pro
     _sum: { points: true },
     where: {
       receiverId,
+      kind: KudosEntryKind.KUDO,
+      countsTowardTotals: true,
       createdAt: {
         gte: startOfUtcDay(),
         lte: endOfUtcDay(),
@@ -110,6 +114,8 @@ export const giveKudos = async (params: GiveKudosParams): Promise<GiveKudosResul
 
     await tx.kudosTransaction.create({
       data: {
+        kind: KudosEntryKind.KUDO,
+        countsTowardTotals: true,
         giverId: giver.id,
         receiverId: receiver.id,
         points: params.points,

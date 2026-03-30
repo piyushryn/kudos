@@ -13,10 +13,10 @@ export function LeaderboardAdminToolbar() {
           className="muted"
           style={{ fontSize: "0.875rem", marginBottom: "1rem" }}
         >
-          Deletes kudos transactions (all-time totals and audit log rows).
-          Monthly giving balances are unchanged — use Quotas to refill balances.
+          Stops their past kudos from counting toward leaderboard totals and adds a row to the audit log. Nothing is
+          deleted. Monthly balances are unchanged — use Quotas to refill balances.
         </p>
-        <div className="">
+        <div>
           <LeaderboardResetBySlackForm />
         </div>
       </div>
@@ -29,8 +29,8 @@ export function LeaderboardAdminToolbar() {
           className="muted"
           style={{ fontSize: "0.875rem", marginBottom: "1rem" }}
         >
-          Deletes kudos transactions (all-time totals and audit log rows).
-          Monthly giving balances are unchanged — use Quotas to refill balances.
+          Stops all past kudos from counting toward leaderboard totals and adds a row to the audit log. Nothing is
+          deleted. Monthly balances are unchanged — use Quotas to refill balances.
         </p>
         <div>
           <LeaderboardResetAllButton />

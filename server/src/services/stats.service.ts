@@ -1,3 +1,5 @@
+import { KudosEntryKind } from "@prisma/client";
+
 import { config } from "../config";
 import { kudosRepository } from "../db/kudos.repository";
 import { prisma } from "../db/prisma";
@@ -46,17 +48,22 @@ export const getLeaderboard = async (limit = 10) => {
   return { topGivers, topReceivers };
 };
 
+const kudoTotalsWhere = {
+  kind: KudosEntryKind.KUDO,
+  countsTowardTotals: true,
+} as const;
+
 export const getUserStatsBySlackId = async (slackUserId: string) => {
   const user = await getOrCreateUser(slackUserId);
 
   const [given, received, balance] = await Promise.all([
     prisma.kudosTransaction.aggregate({
       _sum: { points: true },
-      where: { giverId: user.id },
+      where: { giverId: user.id, ...kudoTotalsWhere },
     }),
     prisma.kudosTransaction.aggregate({
       _sum: { points: true },
-      where: { receiverId: user.id },
+      where: { receiverId: user.id, ...kudoTotalsWhere },
     }),
     getOrCreateCurrentMonthBalance(user.id),
   ]);
@@ -84,14 +91,14 @@ export const getCurrentMonthStats = async () => {
     prisma.kudosTransaction.groupBy({
       by: ["giverId"],
       _sum: { points: true },
-      where: { month, year },
+      where: { month, year, ...kudoTotalsWhere },
       orderBy: { _sum: { points: "desc" } },
       take: 10,
     }),
     prisma.kudosTransaction.groupBy({
       by: ["receiverId"],
       _sum: { points: true },
-      where: { month, year },
+      where: { month, year, ...kudoTotalsWhere },
       orderBy: { _sum: { points: "desc" } },
       take: 10,
     }),
@@ -121,6 +128,7 @@ export const getAuditLog = async (page = 1, pageSize = 25) => {
     total,
     items: items.map((item) => ({
       id: item.id,
+      kind: item.kind,
       createdAt: item.createdAt,
       points: item.points,
       message: item.message,

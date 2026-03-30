@@ -5,7 +5,7 @@ Production-ready MVP for internal Slack kudos:
 - Employees get a fixed monthly giving balance (default `100`).
 - Giving kudos deducts only from the giver's monthly balance.
 - Receiving kudos does **not** increase giving power.
-- Immutable audit trail in PostgreSQL.
+- Append-only kudos and admin-reset history in PostgreSQL (rows are not deleted for leaderboard resets).
 - Slack slash commands + Next.js analytics dashboard.
 
 ## Project Structure
@@ -198,6 +198,7 @@ Shows caller totals: given vs received + current remaining balance.
   - **`/admin/categories`** — create/edit/delete categories (delete only when no users use the category; `employee` cannot be deleted).
   - **`/admin/users`** — searchable user table (category, quotas, remaining balance); links to per-user stats.
   - **`/admin/quotas`** — assign categories, reset balances, bulk actions, reset all.
+  - **`/admin/leaderboard-reset`** — stop past kudos from counting toward displayed totals; appends audit rows (no deletes).
 
 ## API Endpoints (for dashboard/internal use)
 
@@ -214,8 +215,8 @@ Shows caller totals: given vs received + current remaining balance.
 - `PATCH /admin/users/:slackUserId/category` — body `{ "userCategoryId": "<cuid>" }`
 - `POST /admin/users/:slackUserId/reset-balance` — refill current month to effective quota
 - `POST /admin/users/bulk-category` — body `{ "slackUserIds": ["U…"], "userCategoryId": "<cuid>" }`
-- `POST /admin/leaderboard/reset-all` — delete all `kudos_transactions` (leaderboard + audit log)
-- `POST /admin/leaderboard/reset-user` — body `{ "userId": "<cuid>" }` or `{ "slackUserId": "U…" }` — delete transactions where that user gave or received
+- `POST /admin/leaderboard/reset-all` — mark all `KUDO` rows as excluded from leaderboard/profile totals; append `ADMIN_RESET_ALL` audit row (nothing deleted)
+- `POST /admin/leaderboard/reset-user` — body `{ "userId": "<cuid>" }` or `{ "slackUserId": "U…" }` — same for that user’s rows; append `ADMIN_RESET_USER` audit row
 - `POST /admin/balances/reset-all` — reset **all** users’ current-month balances to effective quota
 
 All `/admin/*` routes require `Authorization: Bearer <INTERNAL_API_TOKEN>` (same token as `/api/*`).
@@ -245,4 +246,4 @@ npm run build
 - Run Prisma migrations before starting app in production.
 - Ensure server clock is correct (Slack signature replay protection checks timestamp).
 - Lock down internal APIs via network and `INTERNAL_API_TOKEN`.
-- Keep `kudos_transactions` immutable for audit integrity.
+- Do not delete `kudos_transactions` for leaderboard resets; use `counts_toward_totals` + `kind` (see Prisma schema) so the audit log stays complete while totals can be cleared.

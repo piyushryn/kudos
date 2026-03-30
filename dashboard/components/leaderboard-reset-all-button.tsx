@@ -14,12 +14,12 @@ export function LeaderboardResetAllButton() {
     setError("");
     if (
       !window.confirm(
-        "Delete all kudos transactions? The leaderboard and audit log will be cleared. Monthly balances are not changed.",
+        "Reset leaderboard totals for everyone? All past kudos stay in the audit log; a new admin entry is added. Those rows no longer count toward leaderboard or profile totals. Monthly balances are not changed.",
       )
     ) {
       return;
     }
-    if (!window.confirm("This cannot be undone. Confirm again.")) {
+    if (!window.confirm("Confirm full workspace leaderboard reset.")) {
       return;
     }
     startTransition(async () => {
