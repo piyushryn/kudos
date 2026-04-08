@@ -38,10 +38,22 @@ const safeRedirectPath = (candidate: string | undefined): string => {
   return candidate;
 };
 
-const failedAuthRedirect = (request: Request, message: string) =>
-  NextResponse.redirect(
-    new URL(`/admin/login?error=${encodeURIComponent(message)}`, request.url),
+const publicOriginFromRequest = (request: Request): string => {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedHost) {
+    const proto = forwardedProto ?? "https";
+    return `${proto}://${forwardedHost}`;
+  }
+  return new URL(request.url).origin;
+};
+
+const failedAuthRedirect = (request: Request, message: string) => {
+  const publicOrigin = publicOriginFromRequest(request);
+  return NextResponse.redirect(
+    new URL(`/admin/login?error=${encodeURIComponent(message)}`, publicOrigin),
   );
+};
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -84,7 +96,8 @@ export async function GET(request: Request) {
   }
 
   const displayName = userInfo.name || userInfo.email || slackUserId;
-  const response = NextResponse.redirect(new URL(safeRedirectPath(storedNext), request.url));
+  const publicOrigin = publicOriginFromRequest(request);
+  const response = NextResponse.redirect(new URL(safeRedirectPath(storedNext), publicOrigin));
   const secure = process.env.NODE_ENV === "production";
   response.cookies.delete(OAUTH_STATE_COOKIE);
   response.cookies.delete(OAUTH_NONCE_COOKIE);
