@@ -1,6 +1,11 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { loadAdminUsers } from "@/lib/admin-users";
 
 export default async function AdminUsersPage({
@@ -21,7 +26,7 @@ export default async function AdminUsersPage({
           <>
             Everyone who has used kudos in this workspace. Open a row to see full stats. Assign categories and reset
             balances on{" "}
-            <Link href="/admin/quotas" className="linkInline">
+            <Link href="/admin/quotas" className="font-medium text-emerald-700 underline underline-offset-4 hover:text-emerald-800">
               Quotas & balances
             </Link>
             .
@@ -29,27 +34,25 @@ export default async function AdminUsersPage({
         }
       />
 
-      <div className="stack">
-        {"error" in data ? <p className="errorBanner">{data.error}</p> : null}
+      <div className="space-y-4">
+        {"error" in data ? <Alert variant="destructive">{data.error}</Alert> : null}
 
         {"error" in data ? null : (
           <>
-            <form method="get" className="row formRowBar">
-              <input
+            <form method="get" className="flex w-full max-w-[600px] flex-wrap items-center gap-3">
+              <Input
                 name="search"
                 type="search"
                 placeholder="Search name or Slack ID"
                 defaultValue={search}
-                className="input"
+                className="min-w-60 flex-1"
               />
               <input type="hidden" name="page" value="1" />
-              <button type="submit" className="button secondaryButton">
-                Search
-              </button>
+              <Button type="submit" variant="secondary">Search</Button>
             </form>
 
-            <p className="muted" style={{ marginTop: "-0.25rem" }}>
-              <strong style={{ color: "var(--text-primary)", fontWeight: 600 }}>{data.total}</strong> user
+            <p className="text-sm text-slate-500">
+              <strong className="font-semibold text-slate-900">{data.total}</strong> user
               {data.total === 1 ? "" : "s"}
               {search.trim() ? (
                 <>
@@ -60,54 +63,53 @@ export default async function AdminUsersPage({
               . Workspace default quota: <strong>{data.defaultMonthlyBalance}</strong>.
             </p>
 
-            <div className="tableWrapper">
-              <table className="table" style={{ minWidth: "920px" }}>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Slack ID</th>
-                    <th>Category</th>
-                    <th>Cat. quota</th>
-                    <th>Effective quota</th>
-                    <th>Remaining (month)</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <Card className="overflow-x-auto">
+              <Table className="min-w-[920px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Slack ID</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Cat. quota</TableHead>
+                    <TableHead>Effective quota</TableHead>
+                    <TableHead>Remaining (month)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data.users.map((u) => (
-                    <tr key={u.id}>
-                      <td>{u.displayName}</td>
-                      <td>
-                        <Link href={`/users/${encodeURIComponent(u.slackUserId)}`}>{u.slackUserId}</Link>
-                      </td>
-                      <td>
-                        {u.userCategory.name} <span className="muted">({u.userCategory.key})</span>
-                      </td>
-                      <td>{u.userCategory.monthlyGivingQuota ?? "—"}</td>
-                      <td>{u.effectiveMonthlyQuota}</td>
-                      <td>{u.remainingBalanceThisMonth}</td>
-                    </tr>
+                    <TableRow key={u.id}>
+                      <TableCell>{u.displayName}</TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/users/${encodeURIComponent(u.slackUserId)}`}
+                          className="font-medium text-emerald-700 hover:text-emerald-800 hover:underline"
+                        >
+                          {u.slackUserId}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        {u.userCategory.name} <span className="text-slate-500">({u.userCategory.key})</span>
+                      </TableCell>
+                      <TableCell>{u.userCategory.monthlyGivingQuota ?? "—"}</TableCell>
+                      <TableCell>{u.effectiveMonthlyQuota}</TableCell>
+                      <TableCell>{u.remainingBalanceThisMonth}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TableBody>
+              </Table>
+            </Card>
 
-            <div className="row muted">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
               Page {data.page} of {Math.max(1, Math.ceil(data.total / data.pageSize))}
               {data.page > 1 ? (
-                <Link
-                  href={`/admin/users?search=${encodeURIComponent(search)}&page=${data.page - 1}`}
-                  className="button secondaryButton"
-                >
-                  Previous
-                </Link>
+                <Button asChild variant="secondary">
+                  <Link href={`/admin/users?search=${encodeURIComponent(search)}&page=${data.page - 1}`}>Previous</Link>
+                </Button>
               ) : null}
               {data.page * data.pageSize < data.total ? (
-                <Link
-                  href={`/admin/users?search=${encodeURIComponent(search)}&page=${data.page + 1}`}
-                  className="button secondaryButton"
-                >
-                  Next
-                </Link>
+                <Button asChild variant="secondary">
+                  <Link href={`/admin/users?search=${encodeURIComponent(search)}&page=${data.page + 1}`}>Next</Link>
+                </Button>
               ) : null}
             </div>
           </>

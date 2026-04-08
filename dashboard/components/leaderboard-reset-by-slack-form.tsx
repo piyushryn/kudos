@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { resetLeaderboardBySlackAction } from "@/app/admin/(protected)/leaderboard-reset/actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export function LeaderboardResetBySlackForm() {
   const router = useRouter();
@@ -12,7 +14,7 @@ export function LeaderboardResetBySlackForm() {
 
   return (
     <form
-      className="formGrid"
+      className="flex w-full max-w-[600px] flex-col gap-4"
       onSubmit={(e) => {
         e.preventDefault();
         setError("");
@@ -36,22 +38,21 @@ export function LeaderboardResetBySlackForm() {
         });
       }}
     >
-      <label>
+      <label className="flex w-full flex-col gap-1.5 text-sm font-medium text-slate-700">
         Slack User ID (reset scores)
-        <input
+        <Input
           name="slackUserId"
           type="text"
-          className="input"
           placeholder="U01234567"
           autoComplete="off"
           required
           disabled={pending}
         />
       </label>
-      <button type="submit" className="button dangerButton" disabled={pending}>
+      <Button type="submit" variant="destructive" disabled={pending}>
         {pending ? "Resetting…" : "Reset user by Slack ID"}
-      </button>
-      {error ? <p className="errorText">{error}</p> : null}
+      </Button>
+      {error ? <p className="text-sm text-red-700">{error}</p> : null}
     </form>
   );
 }

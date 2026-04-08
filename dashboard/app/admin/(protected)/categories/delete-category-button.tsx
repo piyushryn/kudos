@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 import { deleteCategoryAction } from "./actions";
 
 type Props = {
@@ -9,7 +11,6 @@ type Props = {
 export function DeleteCategoryButton({ categoryId }: Props) {
   return (
     <form
-      className="tableActionForm"
       action={deleteCategoryAction}
       onSubmit={(e) => {
         if (!confirm("Delete this category? It must have no users assigned.")) {
@@ -18,9 +19,7 @@ export function DeleteCategoryButton({ categoryId }: Props) {
       }}
     >
       <input type="hidden" name="categoryId" value={categoryId} />
-      <button type="submit" className="button dangerButton">
-        Delete
-      </button>
+      <Button type="submit" variant="destructive">Delete</Button>
     </form>
   );
 }

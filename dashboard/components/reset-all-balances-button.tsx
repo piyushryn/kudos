@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { resetAllBalancesAction } from "@/app/admin/(protected)/quotas/actions";
+import { Button } from "@/components/ui/button";
 
 export function ResetAllBalancesButton() {
   const router = useRouter();
@@ -34,11 +35,11 @@ export function ResetAllBalancesButton() {
   };
 
   return (
-    <div className="formActions">
-      <button type="button" className="button dangerButton" onClick={onClick} disabled={pending}>
+    <div className="flex w-full max-w-[600px] flex-col items-start gap-1.5">
+      <Button type="button" variant="destructive" onClick={onClick} disabled={pending}>
         {pending ? "Resetting…" : "Reset all users’ monthly balances"}
-      </button>
-      {error ? <p className="errorText">{error}</p> : null}
+      </Button>
+      {error ? <p className="text-sm text-red-700">{error}</p> : null}
     </div>
   );
 }

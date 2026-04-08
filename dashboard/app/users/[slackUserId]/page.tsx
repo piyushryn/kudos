@@ -14,7 +14,7 @@ export default async function UserStatsPage({ params }: UserStatsPageProps) {
   return (
     <>
       <PageHeader title={stats.displayName} description={<code>{stats.slackUserId}</code>} />
-      <div className="grid">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard label="Total given" value={stats.totalGiven} />
         <StatCard label="Total received" value={stats.totalReceived} />
         <StatCard label="Remaining this month" value={stats.remainingBalance} />

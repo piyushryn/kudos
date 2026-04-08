@@ -2,14 +2,14 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
 import { ResetAllBalancesButton } from "@/components/reset-all-balances-button";
-
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { runtimeEnv } from "@/lib/runtime-env";
 
-import {
-  assignUserCategoryFormAction,
-  bulkCategoryFormAction,
-  resetUserBalanceFormAction,
-} from "./actions";
+import { assignUserCategoryFormAction, bulkCategoryFormAction, resetUserBalanceFormAction } from "./actions";
 
 type AdminUserCategory = {
   id: string;
@@ -44,13 +44,26 @@ async function loadCategoryOptions(): Promise<CategoryListResponse> {
   };
 }
 
-function categorySelect(categories: AdminUserCategory[], name = "userCategoryId", required = true) {
+function CategorySelect({
+  categories,
+  name = "userCategoryId",
+  required = true,
+}: {
+  categories: AdminUserCategory[];
+  name?: string;
+  required?: boolean;
+}) {
   return (
-    <label>
+    <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
       Category
-      <select name={name} className="input" required={required} defaultValue="">
+      <select
+        name={name}
+        required={required}
+        defaultValue=""
+        className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40"
+      >
         <option value="" disabled>
-          Select…
+          Select...
         </option>
         {categories.map((c) => (
           <option key={c.id} value={c.id}>
@@ -72,8 +85,7 @@ export default async function AdminQuotasPage({
   const catData = await loadCategoryOptions();
   const categories = "categories" in catData ? catData.categories : undefined;
   const categoryLoadError = "error" in catData ? catData.error : undefined;
-  const categoryOptions =
-    categories !== undefined && categories.length > 0 ? categories : null;
+  const categoryOptions = categories !== undefined && categories.length > 0 ? categories : null;
 
   return (
     <>
@@ -82,7 +94,7 @@ export default async function AdminQuotasPage({
         description={
           <>
             Assign categories, reset monthly balances, and bulk-update quotas. Browse everyone in the workspace on{" "}
-            <Link href="/admin/users" className="linkInline">
+            <Link href="/admin/users" className="font-medium text-emerald-700 underline underline-offset-4 hover:text-emerald-800">
               Users
             </Link>
             .
@@ -90,85 +102,104 @@ export default async function AdminQuotasPage({
         }
       />
 
-      <div className="stack">
-        {sp.notice ? <p className="noticeBanner">{decodeURIComponent(sp.notice)}</p> : null}
-        {sp.error ? <p className="errorBanner">{decodeURIComponent(sp.error)}</p> : null}
-        {categoryLoadError ? <p className="errorBanner">{categoryLoadError}</p> : null}
+      <div className="space-y-4">
+        {sp.notice ? <Alert>{decodeURIComponent(sp.notice)}</Alert> : null}
+        {sp.error ? <Alert variant="destructive">{decodeURIComponent(sp.error)}</Alert> : null}
+        {categoryLoadError ? <Alert variant="destructive">{categoryLoadError}</Alert> : null}
 
-        <p className="pageDescription" style={{ marginTop: "-0.75rem", marginBottom: "0.25rem" }}>
+        <p className="text-sm text-slate-500">
           Category definitions live under{" "}
-          <Link href="/admin/categories" className="linkInline">
+          <Link href="/admin/categories" className="font-medium text-emerald-700 underline underline-offset-4 hover:text-emerald-800">
             User categories
           </Link>
           . The workspace default when a category has no quota is <code>DEFAULT_MONTHLY_BALANCE</code> (see env on the
           API server).
         </p>
 
-        <div className="grid">
-        <section className="card">
-          <h2 className="cardTitle">One user</h2>
-          <p className="muted" style={{ marginBottom: "1rem" }}>
-            Slack User ID looks like <code>U09ABCDEF12</code>.
-          </p>
-          {!categoryOptions && !categoryLoadError ? (
-            <p className="muted" style={{ marginBottom: "1rem" }}>
-              No categories available. Add them under{" "}
-              <Link href="/admin/categories" className="linkInline">
-                User categories
-              </Link>
-              .
-            </p>
-          ) : null}
-          {categoryOptions ? (
-            <form action={assignUserCategoryFormAction} className="formGrid">
-              <label>
-                Slack User ID
-                <input name="slackUserId" type="text" required placeholder="U09ABCDEF12" className="input" />
-              </label>
-              {categorySelect(categoryOptions)}
-              <button type="submit" className="button">
-                Assign category
-              </button>
-            </form>
-          ) : null}
-          <form action={resetUserBalanceFormAction} className="formGrid" style={{ marginTop: "1.25rem" }}>
-            <label>
-              Slack User ID (reset balance)
-              <input name="slackUserId" type="text" required placeholder="U09ABCDEF12" className="input" />
-            </label>
-            <button type="submit" className="button secondaryButton wideFormButton">
-              Reset this user’s balance (current month → full quota)
-            </button>
-          </form>
-        </section>
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+          <section>
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle className="text-xs uppercase tracking-wider text-slate-500">One user</CardTitle>
+                <p className="text-sm text-slate-500">
+                  Slack User ID looks like <code>U09ABCDEF12</code>.
+                </p>
+                {!categoryOptions && !categoryLoadError ? (
+                  <p className="text-sm text-slate-500">
+                    No categories available. Add them under{" "}
+                    <Link
+                      href="/admin/categories"
+                      className="font-medium text-emerald-700 underline underline-offset-4 hover:text-emerald-800"
+                    >
+                      User categories
+                    </Link>
+                    .
+                  </p>
+                ) : null}
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {categoryOptions ? (
+                  <form action={assignUserCategoryFormAction} className="space-y-4">
+                    <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
+                      Slack User ID
+                      <Input name="slackUserId" type="text" required placeholder="U09ABCDEF12" />
+                    </label>
+                    <CategorySelect categories={categoryOptions} />
+                    <Button type="submit">Assign category</Button>
+                  </form>
+                ) : null}
+                <form action={resetUserBalanceFormAction} className="space-y-4">
+                  <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
+                    Slack User ID (reset balance)
+                    <Input name="slackUserId" type="text" required placeholder="U09ABCDEF12" />
+                  </label>
+                  <Button type="submit" variant="secondary">
+                    Reset this user’s balance (current month → full quota)
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </section>
 
-        <section className="card">
-          <h2 className="cardTitle">Bulk assign category</h2>
-          <p className="muted" style={{ marginBottom: "1rem" }}>
-            One Slack User ID per line (or comma-separated). Only existing users are updated.
-          </p>
-          {categoryOptions ? (
-            <form action={bulkCategoryFormAction} className="formStack">
-              <label>
-                Slack User IDs
-                <textarea name="slackUserIds" rows={6} className="textarea" placeholder={"U09AAA\nU09BBB"} required />
-              </label>
-              {categorySelect(categoryOptions)}
-              <button type="submit" className="button">
-                Apply category to listed users
-              </button>
-            </form>
-          ) : null}
-        </section>
+          <section>
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle className="text-xs uppercase tracking-wider text-slate-500">Bulk assign category</CardTitle>
+                <p className="text-sm text-slate-500">
+                  One Slack User ID per line (or comma-separated). Only existing users are updated.
+                </p>
+              </CardHeader>
+              <CardContent>
+                {categoryOptions ? (
+                  <form action={bulkCategoryFormAction} className="space-y-4">
+                    <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
+                      Slack User IDs
+                      <Textarea name="slackUserIds" rows={6} placeholder={"U09AAA\nU09BBB"} required />
+                    </label>
+                    <CategorySelect categories={categoryOptions} />
+                    <Button type="submit">Apply category to listed users</Button>
+                  </form>
+                ) : null}
+              </CardContent>
+            </Card>
+          </section>
 
-        <section className="card">
-          <h2 className="cardTitle">Reset everyone (current month)</h2>
-          <p className="muted" style={{ marginBottom: "1rem" }}>
-            Sets every user’s <strong>remaining</strong> balance for this calendar month to their effective quota (from
-            their category). Requires two confirmations.
-          </p>
-          <ResetAllBalancesButton />
-        </section>
+          <section className="xl:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xs uppercase tracking-wider text-slate-500">
+                  Reset everyone (current month)
+                </CardTitle>
+                <p className="text-sm text-slate-500">
+                  Sets every user’s <strong>remaining</strong> balance for this calendar month to their effective quota
+                  (from their category). Requires two confirmations.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <ResetAllBalancesButton />
+              </CardContent>
+            </Card>
+          </section>
         </div>
       </div>
     </>

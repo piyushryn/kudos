@@ -5,9 +5,9 @@ type StatCardProps = {
 
 export function StatCard({ label, value }: StatCardProps) {
   return (
-    <div className="statCard">
-      <p className="statCardLabel">{label}</p>
-      <p className="statCardValue">{value}</p>
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+      <p className="mb-1 text-xs font-medium text-slate-500">{label}</p>
+      <p className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 tabular-nums">{value}</p>
     </div>
   );
 }

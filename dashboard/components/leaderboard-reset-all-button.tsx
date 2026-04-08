@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { resetLeaderboardAllAction } from "@/app/admin/(protected)/leaderboard-reset/actions";
+import { Button } from "@/components/ui/button";
 
 export function LeaderboardResetAllButton() {
   const router = useRouter();
@@ -33,11 +34,11 @@ export function LeaderboardResetAllButton() {
   };
 
   return (
-    <div className="formActions">
-      <button type="button" className="button dangerButton" onClick={onClick} disabled={pending}>
+    <div className="flex w-full max-w-[600px] flex-col items-start gap-1.5">
+      <Button type="button" variant="destructive" onClick={onClick} disabled={pending}>
         {pending ? "Resetting…" : "Reset entire leaderboard"}
-      </button>
-      {error ? <p className="errorText">{error}</p> : null}
+      </Button>
+      {error ? <p className="text-sm text-red-700">{error}</p> : null}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { resetLeaderboardUserAction } from "@/app/admin/(protected)/leaderboard-reset/actions";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   userId: string;
@@ -35,17 +36,18 @@ export function LeaderboardResetUserButton({ userId, displayName }: Props) {
   };
 
   return (
-    <span className="leaderboardRowActions">
-      <button
+    <span className="inline-flex shrink-0 flex-col items-end gap-1">
+      <Button
         type="button"
-        className="button dangerButton buttonSmall"
+        variant="destructive"
+        size="sm"
         onClick={onClick}
         disabled={pending}
         title={`Reset scores for ${displayName}`}
       >
         {pending ? "…" : "Reset"}
-      </button>
-      {error ? <span className="errorText" style={{ fontSize: "0.75rem" }}>{error}</span> : null}
+      </Button>
+      {error ? <span className="text-xs text-red-700">{error}</span> : null}
     </span>
   );
 }

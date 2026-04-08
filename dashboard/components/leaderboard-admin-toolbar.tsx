@@ -1,41 +1,36 @@
 import { LeaderboardResetAllButton } from "@/components/leaderboard-reset-all-button";
 import { LeaderboardResetBySlackForm } from "@/components/leaderboard-reset-by-slack-form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function LeaderboardAdminToolbar() {
   return (
-    <div style={{ display: "flex", gap: "1rem" }}>
-      <div
-        className="card leaderboardAdminToolbar"
-        aria-label="Admin leaderboard controls"
-      >
-        <h2 className="cardTitle">Admin: reset individual scores</h2>
-        <p
-          className="muted"
-          style={{ fontSize: "0.875rem", marginBottom: "1rem" }}
-        >
+    <div className="mb-4 grid gap-6 md:grid-cols-2">
+      <Card aria-label="Admin leaderboard controls">
+        <CardHeader>
+          <CardTitle className="text-xs uppercase tracking-wider text-slate-500">
+            Admin: reset individual scores
+          </CardTitle>
+          <p className="text-sm text-slate-500">
           Stops their past kudos from counting toward leaderboard totals and adds a row to the audit log. Nothing is
           deleted. Monthly balances are unchanged — use Quotas to refill balances.
-        </p>
-        <div>
+          </p>
+        </CardHeader>
+        <CardContent>
           <LeaderboardResetBySlackForm />
-        </div>
-      </div>
-      <div
-        className="card leaderboardAdminToolbar"
-        aria-label="Admin leaderboard controls"
-      >
-        <h2 className="cardTitle">Admin: reset all scores</h2>
-        <p
-          className="muted"
-          style={{ fontSize: "0.875rem", marginBottom: "1rem" }}
-        >
+        </CardContent>
+      </Card>
+      <Card aria-label="Admin leaderboard controls">
+        <CardHeader>
+          <CardTitle className="text-xs uppercase tracking-wider text-slate-500">Admin: reset all scores</CardTitle>
+          <p className="text-sm text-slate-500">
           Stops all past kudos from counting toward leaderboard totals and adds a row to the audit log. Nothing is
           deleted. Monthly balances are unchanged — use Quotas to refill balances.
-        </p>
-        <div>
+          </p>
+        </CardHeader>
+        <CardContent>
           <LeaderboardResetAllButton />
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

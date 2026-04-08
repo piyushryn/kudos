@@ -1,6 +1,11 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { runtimeEnv } from "@/lib/runtime-env";
 
@@ -47,11 +52,11 @@ export default async function AdminCategoriesPage({
           <>
             Shared settings such as monthly giving quota. Leave quota empty to use workspace <code>DEFAULT_MONTHLY_BALANCE</code>.
             New Slack users get the <strong>employee</strong> category. Browse users on{" "}
-            <Link href="/admin/users" className="linkInline">
+            <Link href="/admin/users" className="font-medium text-emerald-700 underline underline-offset-4 hover:text-emerald-800">
               Users
             </Link>
             ; assign categories on{" "}
-            <Link href="/admin/quotas" className="linkInline">
+            <Link href="/admin/quotas" className="font-medium text-emerald-700 underline underline-offset-4 hover:text-emerald-800">
               Quotas & balances
             </Link>
             .
@@ -59,97 +64,100 @@ export default async function AdminCategoriesPage({
         }
       />
 
-      <div className="stack">
-        {sp.notice ? <p className="noticeBanner">{decodeURIComponent(sp.notice)}</p> : null}
-        {sp.error ? <p className="errorBanner">{decodeURIComponent(sp.error)}</p> : null}
-        {"error" in data ? <p className="errorBanner">{data.error}</p> : null}
+      <div className="space-y-4">
+        {sp.notice ? <Alert>{decodeURIComponent(sp.notice)}</Alert> : null}
+        {sp.error ? <Alert variant="destructive">{decodeURIComponent(sp.error)}</Alert> : null}
+        {"error" in data ? <Alert variant="destructive">{data.error}</Alert> : null}
 
-        <section className="card">
-          <h2 className="cardTitle">New category</h2>
-          <p className="muted" style={{ marginBottom: "1rem" }}>
+        <section>
+          <Card className="w-full max-w-[600px]">
+            <CardHeader>
+              <CardTitle className="text-xs uppercase tracking-wider text-slate-500">New category</CardTitle>
+              <p className="text-sm text-slate-500">
             Key: lowercase identifier (e.g. <code>manager</code>). Cannot be changed later.
-          </p>
-          <form action={createCategoryAction} className="formGrid">
-            <label>
+              </p>
+            </CardHeader>
+            <CardContent>
+              <form action={createCategoryAction} className="space-y-4">
+                <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
               Key
-              <input
+                  <Input
                 name="key"
                 type="text"
                 required
                 placeholder="manager"
-                className="input"
                 pattern="[a-z][a-z0-9_]{1,62}"
               />
             </label>
-            <label>
+                <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
               Display name
-              <input name="name" type="text" required placeholder="Manager" className="input" />
+                  <Input name="name" type="text" required placeholder="Manager" />
             </label>
-            <label>
+                <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
               Monthly quota (optional)
-              <input name="quota" type="number" min={1} placeholder="Workspace default if empty" className="input" />
+                  <Input name="quota" type="number" min={1} placeholder="Workspace default if empty" />
             </label>
-            <button type="submit" className="button">
+                <Button type="submit">
               Create category
-            </button>
-          </form>
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         </section>
 
         {"categories" in data ? (
-          <section className="stack">
-            <h2 className="sectionHeading">Existing categories</h2>
-            <div className="tableWrapper">
-              <table className="table" style={{ minWidth: "720px" }}>
-                <thead>
-                  <tr>
-                    <th>Key</th>
-                    <th>Name &amp; quota</th>
-                    <th>Users</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900">Existing categories</h2>
+            <Card className="overflow-x-auto">
+              <Table className="min-w-[720px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Key</TableHead>
+                    <TableHead>Name &amp; quota</TableHead>
+                    <TableHead>Users</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data.categories.map((c) => (
-                    <tr key={c.id}>
-                      <td>
+                    <TableRow key={c.id}>
+                      <TableCell>
                         <code>{c.key}</code>
-                      </td>
-                      <td>
-                        <form action={updateCategoryAction} className="tableInlineForm">
+                      </TableCell>
+                      <TableCell>
+                        <form action={updateCategoryAction} className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
                           <input type="hidden" name="categoryId" value={c.id} />
-                          <input
+                          <Input
                             name="name"
                             type="text"
                             defaultValue={c.name}
                             required
-                            className="input"
+                            className="max-w-64 flex-1"
                           />
-                          <input
+                          <Input
                             name="quota"
                             type="number"
                             min={1}
                             placeholder="Default"
                             defaultValue={c.monthlyGivingQuota ?? ""}
-                            className="input"
+                            className="w-24"
                           />
-                          <button type="submit" className="button secondaryButton">
-                            Save
-                          </button>
+                          <Button type="submit" variant="secondary">Save</Button>
                         </form>
-                      </td>
-                      <td>{c.userCount}</td>
-                      <td>
+                      </TableCell>
+                      <TableCell>{c.userCount}</TableCell>
+                      <TableCell>
                         {c.key !== "employee" ? (
                           <DeleteCategoryButton categoryId={c.id} />
                         ) : (
-                          <span className="muted">—</span>
+                          <span className="text-slate-500">—</span>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TableBody>
+              </Table>
+            </Card>
           </section>
         ) : null}
       </div>
