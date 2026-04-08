@@ -24,8 +24,8 @@ export default async function AdminUsersPage({
         title="Users"
         description={
           <>
-            Everyone who has used kudos in this workspace. Open a row to see full stats. Assign categories and reset
-            balances on{" "}
+            Everyone who has used kudos in this workspace. User-private stats are self-view only. Assign categories and
+            reset balances on{" "}
             <Link href="/admin/quotas" className="font-medium text-emerald-700 underline underline-offset-4 hover:text-emerald-800">
               Quotas & balances
             </Link>
@@ -79,14 +79,7 @@ export default async function AdminUsersPage({
                   {data.users.map((u) => (
                     <TableRow key={u.id}>
                       <TableCell>{u.displayName}</TableCell>
-                      <TableCell>
-                        <Link
-                          href={`/users/${encodeURIComponent(u.slackUserId)}`}
-                          className="font-medium text-emerald-700 hover:text-emerald-800 hover:underline"
-                        >
-                          {u.slackUserId}
-                        </Link>
-                      </TableCell>
+                      <TableCell><code>{u.slackUserId}</code></TableCell>
                       <TableCell>
                         {u.userCategory.name} <span className="text-slate-500">({u.userCategory.key})</span>
                       </TableCell>

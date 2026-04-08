@@ -6,10 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { ADMIN_SESSION_COOKIE, verifySessionToken } from "@/lib/admin-session";
-
-import { loginAction } from "./actions";
+import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "@/lib/admin-session";
 
 function sanitizeNext(raw: string | undefined): string {
   if (!raw || !raw.startsWith("/admin") || raw.startsWith("//")) {
@@ -26,7 +23,7 @@ export default async function AdminLoginPage({
   const sp = await searchParams;
   const next = sanitizeNext(sp.next);
   const jar = await cookies();
-  if (verifySessionToken(jar.get(ADMIN_SESSION_COOKIE)?.value)) {
+  if (verifyAdminSessionToken(jar.get(ADMIN_SESSION_COOKIE)?.value)) {
     redirect(next);
   }
 
@@ -44,17 +41,12 @@ export default async function AdminLoginPage({
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-xs uppercase tracking-wider text-slate-500">Credentials</CardTitle>
+            <CardTitle className="text-xs uppercase tracking-wider text-slate-500">Slack SSO</CardTitle>
           </CardHeader>
           <CardContent>
-            <form action={loginAction} className="space-y-4">
-              <input type="hidden" name="next" value={next} />
-              <label className="flex w-full flex-col gap-1.5 text-sm font-medium text-slate-700">
-                Password
-                <Input name="password" type="password" autoComplete="current-password" required />
-              </label>
-              <Button type="submit">Sign in</Button>
-            </form>
+            <Button asChild>
+              <Link href={`/auth/slack/login?next=${encodeURIComponent(next)}`}>Continue with Slack</Link>
+            </Button>
           </CardContent>
         </Card>
 

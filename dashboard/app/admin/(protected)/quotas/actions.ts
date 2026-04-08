@@ -3,13 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { requireAdminSession } from "@/lib/require-admin-session";
 import { runtimeEnv } from "@/lib/runtime-env";
 
 function adminOrigin(): { base: string; token: string } {
   const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
-  const token = runtimeEnv("INTERNAL_API_TOKEN") ?? "";
+  const token = runtimeEnv("DASHBOARD_SERVICE_TOKEN") ?? "";
   if (!token) {
-    throw new Error("INTERNAL_API_TOKEN is not set for the dashboard.");
+    throw new Error("DASHBOARD_SERVICE_TOKEN is not set for the dashboard.");
   }
   return { base, token };
 }
@@ -20,7 +21,7 @@ async function adminJson(path: string, init: RequestInit): Promise<unknown> {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      "x-dashboard-service-token": token,
       ...(init.headers ?? {}),
     },
   });
@@ -42,6 +43,7 @@ async function adminJson(path: string, init: RequestInit): Promise<unknown> {
 }
 
 export async function assignUserCategoryFormAction(formData: FormData): Promise<void> {
+  await requireAdminSession("/admin/quotas");
   const slackUserId = String(formData.get("slackUserId") ?? "").trim();
   const userCategoryId = String(formData.get("userCategoryId") ?? "").trim();
   if (!slackUserId || !userCategoryId) {
@@ -60,6 +62,7 @@ export async function assignUserCategoryFormAction(formData: FormData): Promise<
 }
 
 export async function resetUserBalanceFormAction(formData: FormData): Promise<void> {
+  await requireAdminSession("/admin/quotas");
   const slackUserId = String(formData.get("slackUserId") ?? "").trim();
   if (!slackUserId) {
     redirect("/admin/quotas?error=" + encodeURIComponent("Slack User ID is required."));
@@ -76,6 +79,7 @@ export async function resetUserBalanceFormAction(formData: FormData): Promise<vo
 }
 
 export async function bulkCategoryFormAction(formData: FormData): Promise<void> {
+  await requireAdminSession("/admin/quotas");
   const raw = String(formData.get("slackUserIds") ?? "");
   const userCategoryId = String(formData.get("userCategoryId") ?? "").trim();
   const slackUserIds = raw
@@ -102,6 +106,7 @@ export async function bulkCategoryFormAction(formData: FormData): Promise<void> 
 }
 
 export async function resetAllBalancesAction(): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireAdminSession("/admin/quotas");
   try {
     await adminJson("/admin/balances/reset-all", { method: "POST" });
     revalidatePath("/admin/quotas");

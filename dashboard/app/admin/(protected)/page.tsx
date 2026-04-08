@@ -16,7 +16,7 @@ export default function AdminHomePage() {
         <Card className="border-none bg-gradient-to-br from-teal-700 via-emerald-600 to-teal-800 p-6 text-white shadow-md">
           <p className="mb-5 max-w-[40ch] text-base leading-relaxed text-emerald-50">
             You’re signed in to the admin area. The leaderboard remains public; this dashboard also uses the API{" "}
-            <code>INTERNAL_API_TOKEN</code> for server actions. Open any member via their Slack user ID.
+            <code>DASHBOARD_SERVICE_TOKEN</code> for server actions.
           </p>
           <div className="flex flex-wrap gap-3">
             <Button asChild variant="outline" className="border-emerald-200 bg-white text-teal-700 hover:bg-emerald-50">
@@ -29,9 +29,8 @@ export default function AdminHomePage() {
         </Card>
 
         <Card className="border-dashed px-4 py-3 text-sm text-slate-600">
-          <strong className="font-semibold text-slate-900">Quick path:</strong> replace{" "}
-          <code>slackUserId</code> with a member ID (e.g. <code>U09ABCDEF12</code>) to open their stats at{" "}
-          <code>/users/&lt;slackUserId&gt;</code>.
+          <strong className="font-semibold text-slate-900">Security model:</strong> user stats are now self-scope
+          only under <code>/me</code>; arbitrary Slack ID lookups are blocked.
         </Card>
       </div>
     </>

@@ -5,7 +5,9 @@ import pinoHttp from "pino-http";
 
 import { apiRouter } from "./routes/api.routes";
 import { adminRouter } from "./routes/admin.routes";
+import { publicRouter } from "./routes/public.routes";
 import { slackRouter } from "./routes/slack.routes";
+import { userRouter } from "./routes/user.routes";
 import { errorHandler } from "./middleware/error-handler";
 import { logger } from "./logger";
 
@@ -46,6 +48,8 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/slack", slackLimiter, slackRouter);
+app.use("/public", publicRouter);
+app.use("/user", userRouter);
 app.use("/api", apiRouter);
 app.use("/admin", adminRouter);
 app.use(errorHandler);

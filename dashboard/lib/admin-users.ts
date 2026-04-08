@@ -27,9 +27,9 @@ export async function loadAdminUsers(
   page: number,
 ): Promise<AdminUsersResponse | { error: string }> {
   const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
-  const token = runtimeEnv("INTERNAL_API_TOKEN");
+  const token = runtimeEnv("DASHBOARD_SERVICE_TOKEN");
   if (!token) {
-    return { error: "INTERNAL_API_TOKEN is not set." };
+    return { error: "DASHBOARD_SERVICE_TOKEN is not set." };
   }
   const qs = new URLSearchParams({
     page: String(Math.max(1, page)),
@@ -39,7 +39,7 @@ export async function loadAdminUsers(
     qs.set("search", search.trim());
   }
   const res = await fetch(`${base}/admin/users?${qs}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { "x-dashboard-service-token": token },
     cache: "no-store",
   });
   if (!res.ok) {

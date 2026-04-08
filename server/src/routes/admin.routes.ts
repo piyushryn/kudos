@@ -1,6 +1,10 @@
 import { Router } from "express";
 
 import {
+  getAdminLeaderboardHandler,
+  getAuditLogHandler,
+} from "../controllers/api.controller";
+import {
   assignSlackUserCategoryHandler,
   listAdminUsersHandler,
   postBulkCategoryHandler,
@@ -19,11 +23,13 @@ import {
 } from "../controllers/admin-user-category.controller";
 import { runMonthlyResetHandler } from "../controllers/admin.controller";
 import { asyncHandler } from "../middleware/async-handler";
-import { requireInternalApiToken } from "../middleware/internal-auth";
+import { requireDashboardServiceToken } from "../middleware/dashboard-auth";
 
 export const adminRouter = Router();
 
-adminRouter.use(requireInternalApiToken);
+adminRouter.use(requireDashboardServiceToken);
+adminRouter.get("/audit-log", asyncHandler(getAuditLogHandler));
+adminRouter.get("/leaderboard", asyncHandler(getAdminLeaderboardHandler));
 adminRouter.post("/monthly-reset", asyncHandler(runMonthlyResetHandler));
 
 adminRouter.get("/user-categories", asyncHandler(listUserCategoriesHandler));

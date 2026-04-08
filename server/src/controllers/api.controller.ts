@@ -1,21 +1,18 @@
 import type { Request, Response } from "express";
 
-import { getLeaderboard, getUserStatsBySlackId, getAuditLog } from "../services/stats.service";
+import { getAuditLog, getLeaderboard } from "../services/stats.service";
 
-export const getLeaderboardHandler = async (_req: Request, res: Response): Promise<void> => {
+export const getPublicLeaderboardHandler = async (_req: Request, res: Response): Promise<void> => {
   const leaderboard = await getLeaderboard(10);
-  res.status(200).json(leaderboard);
+  res.status(200).json({
+    topGivers: leaderboard.topGivers.map(({ displayName, points }) => ({ displayName, points })),
+    topReceivers: leaderboard.topReceivers.map(({ displayName, points }) => ({ displayName, points })),
+  });
 };
 
-export const getUserStatsHandler = async (req: Request, res: Response): Promise<void> => {
-  const slackUserIdParam = req.params.slackUserId;
-  const slackUserId = Array.isArray(slackUserIdParam) ? slackUserIdParam[0] : slackUserIdParam;
-  if (!slackUserId) {
-    res.status(400).json({ error: "slackUserId is required" });
-    return;
-  }
-  const stats = await getUserStatsBySlackId(slackUserId);
-  res.status(200).json(stats);
+export const getAdminLeaderboardHandler = async (_req: Request, res: Response): Promise<void> => {
+  const leaderboard = await getLeaderboard(10);
+  res.status(200).json(leaderboard);
 };
 
 export const getAuditLogHandler = async (req: Request, res: Response): Promise<void> => {

@@ -3,13 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { requireAdminSession } from "@/lib/require-admin-session";
 import { runtimeEnv } from "@/lib/runtime-env";
 
 function adminOrigin(): { base: string; token: string } {
   const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
-  const token = runtimeEnv("INTERNAL_API_TOKEN") ?? "";
+  const token = runtimeEnv("DASHBOARD_SERVICE_TOKEN") ?? "";
   if (!token) {
-    throw new Error("INTERNAL_API_TOKEN is not set for the dashboard.");
+    throw new Error("DASHBOARD_SERVICE_TOKEN is not set for the dashboard.");
   }
   return { base, token };
 }
@@ -20,7 +21,7 @@ async function adminJson(path: string, init: RequestInit): Promise<unknown> {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      "x-dashboard-service-token": token,
       ...(init.headers ?? {}),
     },
   });
@@ -42,6 +43,7 @@ async function adminJson(path: string, init: RequestInit): Promise<unknown> {
 }
 
 export async function createCategoryAction(formData: FormData): Promise<void> {
+  await requireAdminSession("/admin/categories");
   const key = String(formData.get("key") ?? "").trim().toLowerCase();
   const name = String(formData.get("name") ?? "").trim();
   const quotaRaw = String(formData.get("quota") ?? "").trim();
@@ -66,6 +68,7 @@ export async function createCategoryAction(formData: FormData): Promise<void> {
 }
 
 export async function updateCategoryAction(formData: FormData): Promise<void> {
+  await requireAdminSession("/admin/categories");
   const id = String(formData.get("categoryId") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
   const quotaRaw = String(formData.get("quota") ?? "").trim();
@@ -96,6 +99,7 @@ export async function updateCategoryAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteCategoryAction(formData: FormData): Promise<void> {
+  await requireAdminSession("/admin/categories");
   const id = String(formData.get("categoryId") ?? "").trim();
   if (!id) {
     redirect("/admin/categories?error=" + encodeURIComponent("Missing category."));

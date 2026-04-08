@@ -2,20 +2,20 @@ import { runtimeEnv } from "@/lib/runtime-env";
 
 const apiBaseUrl = runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000";
 
-const getHeaders = (): HeadersInit => {
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-  };
-  const token = runtimeEnv("INTERNAL_API_TOKEN");
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
+const dashboardServiceToken = (): string => {
+  const token = runtimeEnv("DASHBOARD_SERVICE_TOKEN");
+  if (!token) {
+    throw new Error("DASHBOARD_SERVICE_TOKEN is not set for the dashboard.");
   }
-  return headers;
+  return token;
 };
 
-async function request<T>(path: string): Promise<T> {
+async function request<T>(path: string, headers?: HeadersInit): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
-    headers: getHeaders(),
+    headers: {
+      "Content-Type": "application/json",
+      ...(headers ?? {}),
+    },
     cache: "no-store",
   });
 
@@ -27,6 +27,11 @@ async function request<T>(path: string): Promise<T> {
 }
 
 export type LeaderboardResponse = {
+  topGivers: Array<{ displayName: string; points: number }>;
+  topReceivers: Array<{ displayName: string; points: number }>;
+};
+
+export type AdminLeaderboardResponse = {
   topGivers: Array<{ userId: string; displayName: string; points: number }>;
   topReceivers: Array<{ userId: string; displayName: string; points: number }>;
 };
@@ -49,6 +54,42 @@ export type UserStatsResponse = {
   workspaceDefaultMonthlyBalance: number;
 };
 
+export async function requestAdminJson<T>(path: string): Promise<T> {
+  return request<T>(path, {
+    "x-dashboard-service-token": dashboardServiceToken(),
+  });
+}
+
+export async function requestAdminJsonWithInit<T>(path: string, init: RequestInit): Promise<T> {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      "x-dashboard-service-token": dashboardServiceToken(),
+      ...(init.headers ?? {}),
+    },
+    cache: "no-store",
+  });
+
+  const text = await response.text();
+  let body: unknown = null;
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    body = text;
+  }
+
+  if (!response.ok) {
+    const msg =
+      typeof body === "object" && body !== null && "error" in body
+        ? String((body as { error: string }).error)
+        : text || response.statusText;
+    throw new Error(msg);
+  }
+
+  return body as T;
+}
+
 export type AuditLogEntryKind = "KUDO" | "ADMIN_RESET_USER" | "ADMIN_RESET_ALL";
 
 export type AuditLogResponse = {
@@ -68,10 +109,19 @@ export type AuditLogResponse = {
   }>;
 };
 
-export const fetchLeaderboard = () => request<LeaderboardResponse>("/api/leaderboard");
+export const fetchLeaderboard = () => request<LeaderboardResponse>("/public/leaderboard");
+export const fetchAdminLeaderboard = () =>
+  request<AdminLeaderboardResponse>("/admin/leaderboard", {
+    "x-dashboard-service-token": dashboardServiceToken(),
+  });
 
-export const fetchUserStats = (slackUserId: string) =>
-  request<UserStatsResponse>(`/api/users/${encodeURIComponent(slackUserId)}/stats`);
+export const fetchMyUserStats = (userSessionToken: string) =>
+  request<UserStatsResponse>("/user/me/stats", {
+    Authorization: `Bearer ${userSessionToken}`,
+    "x-dashboard-service-token": dashboardServiceToken(),
+  });
 
 export const fetchAuditLog = (page = 1, pageSize = 50) =>
-  request<AuditLogResponse>(`/api/audit-log?page=${page}&pageSize=${pageSize}`);
+  request<AuditLogResponse>(`/admin/audit-log?page=${page}&pageSize=${pageSize}`, {
+    "x-dashboard-service-token": dashboardServiceToken(),
+  });

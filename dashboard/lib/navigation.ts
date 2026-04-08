@@ -12,8 +12,11 @@ export type NavSection = {
 /** Only `/leaderboard` is outside the `/admin` area; everything else is under Admin. */
 export const navigation: NavSection[] = [
   {
-    title: "Leaderboard",
-    items: [{ href: "/leaderboard", label: "Leaderboard" }],
+    title: "Workspace",
+    items: [
+      { href: "/leaderboard", label: "Leaderboard" },
+      { href: "/me", label: "My stats" },
+    ],
   },
   {
     title: "Admin",

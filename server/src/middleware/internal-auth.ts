@@ -7,13 +7,8 @@ export const requireInternalApiToken = (
   res: Response,
   next: NextFunction,
 ): void => {
-  if (!config.INTERNAL_API_TOKEN) {
-    next();
-    return;
-  }
-
   const authHeader = req.header("authorization");
-  if (authHeader === `Bearer ${config.INTERNAL_API_TOKEN}`) {
+  if (config.INTERNAL_API_TOKEN && authHeader === `Bearer ${config.INTERNAL_API_TOKEN}`) {
     next();
     return;
   }

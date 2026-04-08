@@ -3,7 +3,9 @@ import { KudosEntryKind } from "@prisma/client";
 import { config } from "../config";
 import { kudosRepository } from "../db/kudos.repository";
 import { prisma } from "../db/prisma";
+import { userRepository } from "../db/user.repository";
 import { getMonthYear } from "../utils/date";
+import { AppError } from "../utils/errors";
 import { effectiveQuotaForUser } from "../utils/balance-quota";
 import { getOrCreateCurrentMonthBalance } from "./balance.service";
 import { getOrCreateUser } from "./user.service";
@@ -55,7 +57,18 @@ const kudoTotalsWhere = {
 
 export const getUserStatsBySlackId = async (slackUserId: string) => {
   const user = await getOrCreateUser(slackUserId);
+  return buildUserStatsResponse(user);
+};
 
+export const getUserStatsForSlackId = async (slackUserId: string) => {
+  const user = await userRepository.findBySlackUserId(slackUserId);
+  if (!user) {
+    throw new AppError("User not found. Use a Slack command first to initialize your profile.", 404);
+  }
+  return buildUserStatsResponse(user);
+};
+
+const buildUserStatsResponse = async (user: Awaited<ReturnType<typeof getOrCreateUser>>) => {
   const [given, received, balance] = await Promise.all([
     prisma.kudosTransaction.aggregate({
       _sum: { points: true },

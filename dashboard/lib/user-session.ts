@@ -2,46 +2,32 @@ import { createHmac, timingSafeEqual } from "crypto";
 
 import { runtimeEnv } from "@/lib/runtime-env";
 
-export const ADMIN_SESSION_COOKIE = "kudos_admin_session_v2";
+export const USER_SESSION_COOKIE = "kudos_user_session_v1";
+export const USER_SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 7;
 
-export const SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 7;
-
-type AdminSessionClaims = {
+type UserSessionClaims = {
   slackUserId: string;
+  displayName: string;
   exp: number;
   v: number;
 };
 
-const getAdminSessionSecret = (): string => {
-  const secret = runtimeEnv("ADMIN_SESSION_SIGNING_SECRET");
+const getUserSessionSecret = (): string => {
+  const secret = runtimeEnv("USER_SESSION_SIGNING_SECRET");
   if (!secret || secret.length < 32) {
-    throw new Error("ADMIN_SESSION_SIGNING_SECRET must be set and at least 32 characters.");
+    throw new Error("USER_SESSION_SIGNING_SECRET must be set and at least 32 characters.");
   }
   return secret;
 };
 
-const parseAdminSlackIds = (): Set<string> => {
-  const raw = runtimeEnv("DASHBOARD_ADMIN_SLACK_USER_IDS") ?? "";
-  return new Set(
-    raw
-      .split(",")
-      .map((v) => v.trim())
-      .filter(Boolean),
-  );
-};
-
-export function isSlackAdmin(slackUserId: string): boolean {
-  return parseAdminSlackIds().has(slackUserId);
-}
-
-export function createAdminSessionToken(slackUserId: string): string {
-  const exp = Math.floor(Date.now() / 1000) + SESSION_MAX_AGE_SEC;
-  const payload = JSON.stringify({ slackUserId, exp, v: 1 } satisfies AdminSessionClaims);
-  const sig = createHmac("sha256", getAdminSessionSecret()).update(payload).digest("hex");
+export function createUserSessionToken(slackUserId: string, displayName: string): string {
+  const exp = Math.floor(Date.now() / 1000) + USER_SESSION_MAX_AGE_SEC;
+  const payload = JSON.stringify({ slackUserId, displayName, exp, v: 1 } satisfies UserSessionClaims);
+  const sig = createHmac("sha256", getUserSessionSecret()).update(payload).digest("hex");
   return Buffer.from(payload).toString("base64url") + "." + sig;
 }
 
-export function verifyAdminSessionToken(token: string | undefined): AdminSessionClaims | null {
+export function verifyUserSessionToken(token: string | undefined): UserSessionClaims | null {
   if (!token) {
     return null;
   }
@@ -60,7 +46,7 @@ export function verifyAdminSessionToken(token: string | undefined): AdminSession
   } catch {
     return null;
   }
-  const expectedHex = createHmac("sha256", getAdminSessionSecret()).update(payload).digest("hex");
+  const expectedHex = createHmac("sha256", getUserSessionSecret()).update(payload).digest("hex");
   try {
     if (!timingSafeEqual(Buffer.from(sigHex, "hex"), Buffer.from(expectedHex, "hex"))) {
       return null;
@@ -74,19 +60,19 @@ export function verifyAdminSessionToken(token: string | undefined): AdminSession
   } catch {
     return null;
   }
-
   if (
     !parsed ||
     typeof parsed !== "object" ||
     typeof (parsed as { exp?: unknown }).exp !== "number" ||
     typeof (parsed as { slackUserId?: unknown }).slackUserId !== "string" ||
+    typeof (parsed as { displayName?: unknown }).displayName !== "string" ||
     (parsed as { exp: number }).exp <= Math.floor(Date.now() / 1000)
   ) {
     return null;
   }
-
   return {
     slackUserId: (parsed as { slackUserId: string }).slackUserId,
+    displayName: (parsed as { displayName: string }).displayName,
     exp: (parsed as { exp: number }).exp,
     v: typeof (parsed as { v?: unknown }).v === "number" ? (parsed as { v: number }).v : 1,
   };

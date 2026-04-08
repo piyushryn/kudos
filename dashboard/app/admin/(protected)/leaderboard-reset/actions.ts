@@ -9,9 +9,9 @@ const REVALIDATE = ["/leaderboard", "/admin/leaderboard-reset", "/admin/audit-lo
 
 function adminOrigin(): { base: string; token: string } {
   const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
-  const token = runtimeEnv("INTERNAL_API_TOKEN") ?? "";
+  const token = runtimeEnv("DASHBOARD_SERVICE_TOKEN") ?? "";
   if (!token) {
-    throw new Error("INTERNAL_API_TOKEN is not set for the dashboard.");
+    throw new Error("DASHBOARD_SERVICE_TOKEN is not set for the dashboard.");
   }
   return { base, token };
 }
@@ -22,7 +22,7 @@ async function adminJson(path: string, init: RequestInit): Promise<unknown> {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      "x-dashboard-service-token": token,
       ...(init.headers ?? {}),
     },
   });

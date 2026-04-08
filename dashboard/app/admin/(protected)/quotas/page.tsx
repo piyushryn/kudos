@@ -22,12 +22,12 @@ type CategoryListResponse = { categories: AdminUserCategory[] } | { error: strin
 
 async function loadCategoryOptions(): Promise<CategoryListResponse> {
   const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
-  const token = runtimeEnv("INTERNAL_API_TOKEN");
+  const token = runtimeEnv("DASHBOARD_SERVICE_TOKEN");
   if (!token) {
-    return { error: "INTERNAL_API_TOKEN is not set." };
+    return { error: "DASHBOARD_SERVICE_TOKEN is not set." };
   }
   const res = await fetch(`${base}/admin/user-categories`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { "x-dashboard-service-token": token },
     cache: "no-store",
   });
   if (!res.ok) {

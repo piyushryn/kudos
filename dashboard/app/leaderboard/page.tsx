@@ -19,8 +19,8 @@ export default async function LeaderboardPage() {
             </CardHeader>
             <CardContent>
               <ol className="mt-1 divide-y divide-slate-200">
-            {leaderboard.topGivers.map((entry) => (
-                <li key={entry.userId} className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
+            {leaderboard.topGivers.map((entry, index) => (
+                <li key={`${entry.displayName}-${index}`} className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
                   <span>{entry.displayName}</span>
                   <strong className="font-semibold text-emerald-700">{entry.points}</strong>
               </li>
@@ -36,8 +36,8 @@ export default async function LeaderboardPage() {
             </CardHeader>
             <CardContent>
               <ol className="mt-1 divide-y divide-slate-200">
-            {leaderboard.topReceivers.map((entry) => (
-                <li key={entry.userId} className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
+            {leaderboard.topReceivers.map((entry, index) => (
+                <li key={`${entry.displayName}-${index}`} className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
                   <span>{entry.displayName}</span>
                   <strong className="font-semibold text-emerald-700">{entry.points}</strong>
               </li>
