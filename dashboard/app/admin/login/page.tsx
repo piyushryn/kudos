@@ -45,7 +45,7 @@ export default async function AdminLoginPage({
           </CardHeader>
           <CardContent>
             <Button asChild>
-              <Link href={`/auth/slack/login?next=${encodeURIComponent(next)}`}>Continue with Slack</Link>
+              <a href={`/auth/slack/login?next=${encodeURIComponent(next)}`}>Continue with Slack</a>
             </Button>
           </CardContent>
         </Card>
