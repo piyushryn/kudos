@@ -2,9 +2,9 @@ import { Router } from "express";
 
 import { getMyStatsHandler } from "../controllers/user.controller";
 import { asyncHandler } from "../middleware/async-handler";
-import { requireUserSessionAuth } from "../middleware/dashboard-auth";
+import { requireRbacAuth } from "../middleware/rbac-auth";
 
 export const userRouter = Router();
 
-userRouter.use(requireUserSessionAuth);
+userRouter.use(requireRbacAuth(["user", "admin", "super_admin"]));
 userRouter.get("/me/stats", asyncHandler(getMyStatsHandler));

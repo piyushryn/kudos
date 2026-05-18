@@ -6,6 +6,7 @@ const toUserWithCategory = (user: any): UserWithCategoryRecord => ({
   id: String(user._id),
   slackUserId: user.slackUserId,
   displayName: user.displayName,
+  isAdmin: Boolean(user.isAdmin),
   userCategoryId: String(user.userCategoryId),
   createdAt: user.createdAt,
   userCategory: {
@@ -39,6 +40,7 @@ export const userRepository = {
     const created = await UserModel.create({
       slackUserId,
       displayName,
+      isAdmin: false,
       userCategoryId: employeeCategory._id,
     });
     const createdWithCategory = await UserModel.findById(created._id).populate("userCategoryId").lean().exec();
@@ -61,6 +63,26 @@ export const userRepository = {
       .exec();
     if (!updated || !updated.userCategoryId || typeof updated.userCategoryId !== "object") {
       throw new Error(`User not found: ${id}`);
+    }
+    return toUserWithCategory({
+      ...updated,
+      userCategory: updated.userCategoryId,
+    });
+  },
+  async updateAdminFlagBySlackUserId(
+    slackUserId: string,
+    isAdmin: boolean,
+  ): Promise<UserWithCategoryRecord | null> {
+    const updated = await UserModel.findOneAndUpdate(
+      { slackUserId },
+      { $set: { isAdmin } },
+      { new: true },
+    )
+      .populate("userCategoryId")
+      .lean()
+      .exec();
+    if (!updated || !updated.userCategoryId || typeof updated.userCategoryId !== "object") {
+      return null;
     }
     return toUserWithCategory({
       ...updated,

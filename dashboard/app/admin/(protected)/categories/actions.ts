@@ -6,22 +6,18 @@ import { redirect } from "next/navigation";
 import { requireAdminSession } from "@/lib/require-admin-session";
 import { runtimeEnv } from "@/lib/runtime-env";
 
-function adminOrigin(): { base: string; token: string } {
+function adminOrigin(): { base: string } {
   const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
-  const token = runtimeEnv("DASHBOARD_SERVICE_TOKEN") ?? "";
-  if (!token) {
-    throw new Error("DASHBOARD_SERVICE_TOKEN is not set for the dashboard.");
-  }
-  return { base, token };
+  return { base };
 }
 
-async function adminJson(path: string, init: RequestInit): Promise<unknown> {
-  const { base, token } = adminOrigin();
+async function adminJson(path: string, init: RequestInit, bearerToken: string): Promise<unknown> {
+  const { base } = adminOrigin();
   const res = await fetch(`${base}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      "x-dashboard-service-token": token,
+      Authorization: `Bearer ${bearerToken}`,
       ...(init.headers ?? {}),
     },
   });
@@ -43,7 +39,7 @@ async function adminJson(path: string, init: RequestInit): Promise<unknown> {
 }
 
 export async function createCategoryAction(formData: FormData): Promise<void> {
-  await requireAdminSession("/admin/categories");
+  const session = await requireAdminSession("/admin/categories");
   const key = String(formData.get("key") ?? "").trim().toLowerCase();
   const name = String(formData.get("name") ?? "").trim();
   const quotaRaw = String(formData.get("quota") ?? "").trim();
@@ -58,7 +54,7 @@ export async function createCategoryAction(formData: FormData): Promise<void> {
     await adminJson("/admin/user-categories", {
       method: "POST",
       body: JSON.stringify({ key, name, monthlyQuota }),
-    });
+    }, session.token);
   } catch (e) {
     redirect("/admin/categories?error=" + encodeURIComponent(e instanceof Error ? e.message : "Request failed"));
   }
@@ -68,7 +64,7 @@ export async function createCategoryAction(formData: FormData): Promise<void> {
 }
 
 export async function updateCategoryAction(formData: FormData): Promise<void> {
-  await requireAdminSession("/admin/categories");
+  const session = await requireAdminSession("/admin/categories");
   const id = String(formData.get("categoryId") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
   const quotaRaw = String(formData.get("quota") ?? "").trim();
@@ -89,7 +85,7 @@ export async function updateCategoryAction(formData: FormData): Promise<void> {
     await adminJson(`/admin/user-categories/${encodeURIComponent(id)}`, {
       method: "PATCH",
       body: JSON.stringify({ name, monthlyQuota }),
-    });
+    }, session.token);
   } catch (e) {
     redirect("/admin/categories?error=" + encodeURIComponent(e instanceof Error ? e.message : "Request failed"));
   }
@@ -99,13 +95,13 @@ export async function updateCategoryAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteCategoryAction(formData: FormData): Promise<void> {
-  await requireAdminSession("/admin/categories");
+  const session = await requireAdminSession("/admin/categories");
   const id = String(formData.get("categoryId") ?? "").trim();
   if (!id) {
     redirect("/admin/categories?error=" + encodeURIComponent("Missing category."));
   }
   try {
-    await adminJson(`/admin/user-categories/${encodeURIComponent(id)}`, { method: "DELETE" });
+    await adminJson(`/admin/user-categories/${encodeURIComponent(id)}`, { method: "DELETE" }, session.token);
   } catch (e) {
     redirect("/admin/categories?error=" + encodeURIComponent(e instanceof Error ? e.message : "Request failed"));
   }

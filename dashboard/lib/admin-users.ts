@@ -1,4 +1,5 @@
 import { runtimeEnv } from "@/lib/runtime-env";
+import { requireAdminSession } from "@/lib/require-admin-session";
 
 export type AdminUserCategory = {
   id: string;
@@ -27,10 +28,7 @@ export async function loadAdminUsers(
   page: number,
 ): Promise<AdminUsersResponse | { error: string }> {
   const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
-  const token = runtimeEnv("DASHBOARD_SERVICE_TOKEN");
-  if (!token) {
-    return { error: "DASHBOARD_SERVICE_TOKEN is not set." };
-  }
+  const session = await requireAdminSession("/admin/users");
   const qs = new URLSearchParams({
     page: String(Math.max(1, page)),
     limit: "40",
@@ -39,7 +37,7 @@ export async function loadAdminUsers(
     qs.set("search", search.trim());
   }
   const res = await fetch(`${base}/admin/users?${qs}`, {
-    headers: { "x-dashboard-service-token": token },
+    headers: { Authorization: `Bearer ${session.token}` },
     cache: "no-store",
   });
   if (!res.ok) {

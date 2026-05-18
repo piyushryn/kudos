@@ -6,6 +6,7 @@ import { USER_SESSION_COOKIE, verifyUserSessionToken } from "@/lib/user-session"
 export type UserSession = {
   slackUserId: string;
   displayName: string;
+  role: "user" | "admin" | "super_admin";
   token: string;
 };
 
@@ -20,6 +21,7 @@ export async function requireUserSession(redirectNext = "/me"): Promise<UserSess
   return {
     slackUserId: session.slackUserId,
     displayName: session.displayName,
+    role: session.role,
     token,
   };
 }

@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { ADMIN_SESSION_COOKIE, SESSION_MAX_AGE_SEC, createAdminSessionToken, isSlackAdmin } from "@/lib/admin-session";
 import { runtimeEnv } from "@/lib/runtime-env";
 import { USER_SESSION_COOKIE, USER_SESSION_MAX_AGE_SEC, createUserSessionToken } from "@/lib/user-session";
 
@@ -31,6 +30,12 @@ type SlackUserInfo = {
   "https://slack.com/user_id"?: string;
 };
 
+type SessionRoleResponse = {
+  slackUserId: string;
+  displayName: string;
+  role: "user" | "admin" | "super_admin";
+};
+
 const safeRedirectPath = (candidate: string | undefined): string => {
   if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//")) {
     return "/leaderboard";
@@ -46,6 +51,25 @@ const publicOriginFromRequest = (request: Request): string => {
     return `${proto}://${forwardedHost}`;
   }
   return new URL(request.url).origin;
+};
+
+const resolveSessionRole = async (
+  slackUserId: string,
+  displayName: string,
+): Promise<SessionRoleResponse> => {
+  const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
+  const response = await fetch(`${base}/public/session-role`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ slackUserId, displayName }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to resolve session role (${response.status})`);
+  }
+
+  return (await response.json()) as SessionRoleResponse;
 };
 
 const failedAuthRedirect = (request: Request, message: string) => {
@@ -96,6 +120,13 @@ export async function GET(request: Request) {
   }
 
   const displayName = userInfo.name || userInfo.email || slackUserId;
+  let resolved: SessionRoleResponse;
+  try {
+    resolved = await resolveSessionRole(slackUserId, displayName);
+  } catch {
+    return failedAuthRedirect(request, "Unable to resolve role for this user.");
+  }
+
   const publicOrigin = publicOriginFromRequest(request);
   const response = NextResponse.redirect(new URL(safeRedirectPath(storedNext), publicOrigin));
   const secure = process.env.NODE_ENV === "production";
@@ -103,25 +134,18 @@ export async function GET(request: Request) {
   response.cookies.delete(OAUTH_NONCE_COOKIE);
   response.cookies.delete(OAUTH_NEXT_COOKIE);
 
-  response.cookies.set(USER_SESSION_COOKIE, createUserSessionToken(slackUserId, displayName), {
+  response.cookies.set(
+    USER_SESSION_COOKIE,
+    createUserSessionToken(resolved.slackUserId, resolved.displayName, resolved.role),
+    {
     httpOnly: true,
     secure,
     sameSite: "lax",
     path: "/",
     maxAge: USER_SESSION_MAX_AGE_SEC,
-  });
-
-  if (isSlackAdmin(slackUserId)) {
-    response.cookies.set(ADMIN_SESSION_COOKIE, createAdminSessionToken(slackUserId), {
-      httpOnly: true,
-      secure,
-      sameSite: "lax",
-      path: "/",
-      maxAge: SESSION_MAX_AGE_SEC,
-    });
-  } else {
-    response.cookies.delete(ADMIN_SESSION_COOKIE);
-  }
+    },
+  );
+  response.cookies.delete("kudos_admin_session_v2");
 
   return response;
 }

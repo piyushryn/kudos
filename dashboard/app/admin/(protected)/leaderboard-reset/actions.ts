@@ -7,22 +7,18 @@ import { runtimeEnv } from "@/lib/runtime-env";
 
 const REVALIDATE = ["/leaderboard", "/admin/leaderboard-reset", "/admin/audit-log"] as const;
 
-function adminOrigin(): { base: string; token: string } {
+function adminOrigin(): { base: string } {
   const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
-  const token = runtimeEnv("DASHBOARD_SERVICE_TOKEN") ?? "";
-  if (!token) {
-    throw new Error("DASHBOARD_SERVICE_TOKEN is not set for the dashboard.");
-  }
-  return { base, token };
+  return { base };
 }
 
-async function adminJson(path: string, init: RequestInit): Promise<unknown> {
-  const { base, token } = adminOrigin();
+async function adminJson(path: string, init: RequestInit, bearerToken: string): Promise<unknown> {
+  const { base } = adminOrigin();
   const res = await fetch(`${base}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      "x-dashboard-service-token": token,
+      Authorization: `Bearer ${bearerToken}`,
       ...(init.headers ?? {}),
     },
   });
@@ -50,9 +46,9 @@ function revalidateLeaderboardRelated(): void {
 }
 
 export async function resetLeaderboardAllAction(): Promise<{ ok: true } | { ok: false; error: string }> {
-  await requireAdminSession("/admin/leaderboard-reset");
+  const session = await requireAdminSession("/admin/leaderboard-reset");
   try {
-    await adminJson("/admin/leaderboard/reset-all", { method: "POST" });
+    await adminJson("/admin/leaderboard/reset-all", { method: "POST" }, session.token);
     revalidateLeaderboardRelated();
     return { ok: true };
   } catch (e) {
@@ -63,7 +59,7 @@ export async function resetLeaderboardAllAction(): Promise<{ ok: true } | { ok: 
 export async function resetLeaderboardUserAction(
   userId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  await requireAdminSession("/admin/leaderboard-reset");
+  const session = await requireAdminSession("/admin/leaderboard-reset");
   const id = userId.trim();
   if (!id) {
     return { ok: false, error: "Missing user id." };
@@ -72,7 +68,7 @@ export async function resetLeaderboardUserAction(
     await adminJson("/admin/leaderboard/reset-user", {
       method: "POST",
       body: JSON.stringify({ userId: id }),
-    });
+    }, session.token);
     revalidateLeaderboardRelated();
     return { ok: true };
   } catch (e) {
@@ -83,7 +79,7 @@ export async function resetLeaderboardUserAction(
 export async function resetLeaderboardBySlackAction(
   slackUserId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  await requireAdminSession("/admin/leaderboard-reset");
+  const session = await requireAdminSession("/admin/leaderboard-reset");
   const id = slackUserId.trim();
   if (!id) {
     return { ok: false, error: "Slack User ID is required." };
@@ -92,7 +88,7 @@ export async function resetLeaderboardBySlackAction(
     await adminJson("/admin/leaderboard/reset-user", {
       method: "POST",
       body: JSON.stringify({ slackUserId: id }),
-    });
+    }, session.token);
     revalidateLeaderboardRelated();
     return { ok: true };
   } catch (e) {

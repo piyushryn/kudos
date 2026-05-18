@@ -16,6 +16,7 @@ export type UserRecord = {
   id: string;
   slackUserId: string;
   displayName: string;
+  isAdmin: boolean;
   userCategoryId: string;
   createdAt: Date;
 };

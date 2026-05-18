@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 type UserSessionClaims = {
   slackUserId: string;
   displayName: string;
+  role: "user" | "admin" | "super_admin";
   exp: number;
   v: number;
 };
@@ -55,6 +56,7 @@ export const verifyUserSessionToken = (
     typeof (parsed as { exp?: unknown }).exp !== "number" ||
     typeof (parsed as { slackUserId?: unknown }).slackUserId !== "string" ||
     typeof (parsed as { displayName?: unknown }).displayName !== "string" ||
+    !["user", "admin", "super_admin"].includes(String((parsed as { role?: unknown }).role)) ||
     (parsed as { exp: number }).exp <= Math.floor(Date.now() / 1000)
   ) {
     return null;
@@ -63,6 +65,7 @@ export const verifyUserSessionToken = (
   return {
     slackUserId: (parsed as { slackUserId: string }).slackUserId,
     displayName: (parsed as { displayName: string }).displayName,
+    role: (parsed as { role: "user" | "admin" | "super_admin" }).role,
     exp: (parsed as { exp: number }).exp,
     v: typeof (parsed as { v?: unknown }).v === "number" ? (parsed as { v: number }).v : 1,
   };

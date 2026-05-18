@@ -8,6 +8,7 @@ export const USER_SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 7;
 type UserSessionClaims = {
   slackUserId: string;
   displayName: string;
+  role: "user" | "admin" | "super_admin";
   exp: number;
   v: number;
 };
@@ -20,9 +21,13 @@ const getUserSessionSecret = (): string => {
   return secret;
 };
 
-export function createUserSessionToken(slackUserId: string, displayName: string): string {
+export function createUserSessionToken(
+  slackUserId: string,
+  displayName: string,
+  role: UserSessionClaims["role"],
+): string {
   const exp = Math.floor(Date.now() / 1000) + USER_SESSION_MAX_AGE_SEC;
-  const payload = JSON.stringify({ slackUserId, displayName, exp, v: 1 } satisfies UserSessionClaims);
+  const payload = JSON.stringify({ slackUserId, displayName, role, exp, v: 1 } satisfies UserSessionClaims);
   const sig = createHmac("sha256", getUserSessionSecret()).update(payload).digest("hex");
   return Buffer.from(payload).toString("base64url") + "." + sig;
 }
@@ -66,6 +71,7 @@ export function verifyUserSessionToken(token: string | undefined): UserSessionCl
     typeof (parsed as { exp?: unknown }).exp !== "number" ||
     typeof (parsed as { slackUserId?: unknown }).slackUserId !== "string" ||
     typeof (parsed as { displayName?: unknown }).displayName !== "string" ||
+    !["user", "admin", "super_admin"].includes(String((parsed as { role?: unknown }).role)) ||
     (parsed as { exp: number }).exp <= Math.floor(Date.now() / 1000)
   ) {
     return null;
@@ -73,6 +79,7 @@ export function verifyUserSessionToken(token: string | undefined): UserSessionCl
   return {
     slackUserId: (parsed as { slackUserId: string }).slackUserId,
     displayName: (parsed as { displayName: string }).displayName,
+    role: (parsed as { role: UserSessionClaims["role"] }).role,
     exp: (parsed as { exp: number }).exp,
     v: typeof (parsed as { v?: unknown }).v === "number" ? (parsed as { v: number }).v : 1,
   };

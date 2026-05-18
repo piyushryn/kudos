@@ -4,9 +4,9 @@ import {
   getPublicLeaderboardHandler,
 } from "../controllers/api.controller";
 import { asyncHandler } from "../middleware/async-handler";
-import { requireInternalApiToken } from "../middleware/internal-auth";
+import { requireRbacAuth } from "../middleware/rbac-auth";
 
 export const apiRouter = Router();
 
-apiRouter.use(requireInternalApiToken);
+apiRouter.use(requireRbacAuth(["user", "admin", "super_admin"]));
 apiRouter.get("/leaderboard", asyncHandler(getPublicLeaderboardHandler));

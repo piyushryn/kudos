@@ -4,6 +4,7 @@ declare namespace Express {
     auth?: {
       slackUserId: string;
       displayName: string;
+      role: "user" | "admin" | "super_admin";
     };
   }
 }

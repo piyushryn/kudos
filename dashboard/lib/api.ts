@@ -1,14 +1,7 @@
 import { runtimeEnv } from "@/lib/runtime-env";
+import { requireAdminSession } from "@/lib/require-admin-session";
 
 const apiBaseUrl = runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000";
-
-const dashboardServiceToken = (): string => {
-  const token = runtimeEnv("DASHBOARD_SERVICE_TOKEN");
-  if (!token) {
-    throw new Error("DASHBOARD_SERVICE_TOKEN is not set for the dashboard.");
-  }
-  return token;
-};
 
 async function request<T>(path: string, headers?: HeadersInit): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
@@ -54,18 +47,16 @@ export type UserStatsResponse = {
   workspaceDefaultMonthlyBalance: number;
 };
 
-export async function requestAdminJson<T>(path: string): Promise<T> {
-  return request<T>(path, {
-    "x-dashboard-service-token": dashboardServiceToken(),
-  });
-}
-
-export async function requestAdminJsonWithInit<T>(path: string, init: RequestInit): Promise<T> {
+export async function requestAdminJsonWithInit<T>(
+  path: string,
+  init: RequestInit,
+  bearerToken: string,
+): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      "x-dashboard-service-token": dashboardServiceToken(),
+      Authorization: `Bearer ${bearerToken}`,
       ...(init.headers ?? {}),
     },
     cache: "no-store",
@@ -110,18 +101,21 @@ export type AuditLogResponse = {
 };
 
 export const fetchLeaderboard = () => request<LeaderboardResponse>("/public/leaderboard");
-export const fetchAdminLeaderboard = () =>
-  request<AdminLeaderboardResponse>("/admin/leaderboard", {
-    "x-dashboard-service-token": dashboardServiceToken(),
+export const fetchAdminLeaderboard = async () => {
+  const session = await requireAdminSession("/admin/leaderboard-reset");
+  return request<AdminLeaderboardResponse>("/admin/leaderboard", {
+    Authorization: `Bearer ${session.token}`,
   });
+};
 
 export const fetchMyUserStats = (userSessionToken: string) =>
   request<UserStatsResponse>("/user/me/stats", {
     Authorization: `Bearer ${userSessionToken}`,
-    "x-dashboard-service-token": dashboardServiceToken(),
   });
 
-export const fetchAuditLog = (page = 1, pageSize = 50) =>
-  request<AuditLogResponse>(`/admin/audit-log?page=${page}&pageSize=${pageSize}`, {
-    "x-dashboard-service-token": dashboardServiceToken(),
+export const fetchAuditLog = async (page = 1, pageSize = 50) => {
+  const session = await requireAdminSession("/admin/audit-log");
+  return request<AuditLogResponse>(`/admin/audit-log?page=${page}&pageSize=${pageSize}`, {
+    Authorization: `Bearer ${session.token}`,
   });
+};

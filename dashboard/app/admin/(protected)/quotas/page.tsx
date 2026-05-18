@@ -6,6 +6,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BulkUserIdChipInput, type UserOption, UserIdInput } from "@/components/user-id-picker";
+import { requireAdminSession } from "@/lib/require-admin-session";
 import { runtimeEnv } from "@/lib/runtime-env";
 
 import { assignUserCategoryFormAction, bulkCategoryFormAction, resetUserBalanceFormAction } from "./actions";
@@ -20,14 +21,10 @@ type AdminUserCategory = {
 type CategoryListResponse = { categories: AdminUserCategory[] } | { error: string };
 type UserListResponse = { users: UserOption[] } | { error: string };
 
-async function loadCategoryOptions(): Promise<CategoryListResponse> {
+async function loadCategoryOptions(token: string): Promise<CategoryListResponse> {
   const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
-  const token = runtimeEnv("DASHBOARD_SERVICE_TOKEN");
-  if (!token) {
-    return { error: "DASHBOARD_SERVICE_TOKEN is not set." };
-  }
   const res = await fetch(`${base}/admin/user-categories`, {
-    headers: { "x-dashboard-service-token": token },
+    headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });
   if (!res.ok) {
@@ -44,12 +41,8 @@ async function loadCategoryOptions(): Promise<CategoryListResponse> {
   };
 }
 
-async function loadUserOptions(): Promise<UserListResponse> {
+async function loadUserOptions(token: string): Promise<UserListResponse> {
   const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
-  const token = runtimeEnv("DASHBOARD_SERVICE_TOKEN");
-  if (!token) {
-    return { error: "DASHBOARD_SERVICE_TOKEN is not set." };
-  }
 
   const users: UserOption[] = [];
   let page = 1;
@@ -63,7 +56,7 @@ async function loadUserOptions(): Promise<UserListResponse> {
     });
 
     const res = await fetch(`${base}/admin/users?${qs}`, {
-      headers: { "x-dashboard-service-token": token },
+      headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
 
@@ -128,9 +121,10 @@ export default async function AdminQuotasPage({
 }: {
   searchParams: Promise<{ notice?: string; error?: string }>;
 }) {
+  const session = await requireAdminSession("/admin/quotas");
   const sp = await searchParams;
-  const catData = await loadCategoryOptions();
-  const userData = await loadUserOptions();
+  const catData = await loadCategoryOptions(session.token);
+  const userData = await loadUserOptions(session.token);
   const categories = "categories" in catData ? catData.categories : undefined;
   const users = "users" in userData ? userData.users : [];
   const categoryLoadError = "error" in catData ? catData.error : undefined;

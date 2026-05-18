@@ -15,6 +15,7 @@ const userSchema = new Schema(
   {
     slackUserId: { type: String, required: true, unique: true, trim: true },
     displayName: { type: String, required: true, trim: true },
+    isAdmin: { type: Boolean, required: true, default: false, index: true },
     userCategoryId: {
       type: Schema.Types.ObjectId,
       required: true,

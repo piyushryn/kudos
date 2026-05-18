@@ -7,12 +7,14 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { loadAdminUsers } from "@/lib/admin-users";
+import { requireAdminSession } from "@/lib/require-admin-session";
 
 export default async function AdminUsersPage({
   searchParams,
 }: {
   searchParams: Promise<{ search?: string; page?: string }>;
 }) {
+  const session = await requireAdminSession("/admin/users");
   const sp = await searchParams;
   const search = sp.search ?? "";
   const page = Number(sp.page ?? 1) || 1;
@@ -29,7 +31,21 @@ export default async function AdminUsersPage({
             <Link href="/admin/quotas" className="font-medium text-emerald-700 underline underline-offset-4 hover:text-emerald-800">
               Quotas & balances
             </Link>
-            .
+            {session.role === "super_admin" ? (
+              <>
+                {" "}
+                and manage admin access on{" "}
+                <Link
+                  href="/admin/rbac-users"
+                  className="font-medium text-emerald-700 underline underline-offset-4 hover:text-emerald-800"
+                >
+                  Access control
+                </Link>
+                .
+              </>
+            ) : (
+              "."
+            )}
           </>
         }
       />

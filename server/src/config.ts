@@ -19,8 +19,15 @@ const envSchema = z.object({
     .default("false")
     .transform((value) => value === "true"),
   CRON_MONTHLY_RESET: z.string().default("0 2 1 * *"),
-  INTERNAL_API_TOKEN: z.string().min(1).optional(),
-  DASHBOARD_SERVICE_TOKEN: z.string().min(1),
+  SUPER_ADMIN_SLACK_USER_IDS: z
+    .string()
+    .default("")
+    .transform((value) =>
+      value
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean),
+    ),
   USER_SESSION_SIGNING_SECRET: z.string().min(32),
   DASHBOARD_API_BASE_URL: z.url().optional(),
   CORS_ALLOWED_ORIGINS: z

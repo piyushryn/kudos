@@ -6,22 +6,18 @@ import { redirect } from "next/navigation";
 import { requireAdminSession } from "@/lib/require-admin-session";
 import { runtimeEnv } from "@/lib/runtime-env";
 
-function adminOrigin(): { base: string; token: string } {
+function adminOrigin(): { base: string } {
   const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
-  const token = runtimeEnv("DASHBOARD_SERVICE_TOKEN") ?? "";
-  if (!token) {
-    throw new Error("DASHBOARD_SERVICE_TOKEN is not set for the dashboard.");
-  }
-  return { base, token };
+  return { base };
 }
 
-async function adminJson(path: string, init: RequestInit): Promise<unknown> {
-  const { base, token } = adminOrigin();
+async function adminJson(path: string, init: RequestInit, bearerToken: string): Promise<unknown> {
+  const { base } = adminOrigin();
   const res = await fetch(`${base}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      "x-dashboard-service-token": token,
+      Authorization: `Bearer ${bearerToken}`,
       ...(init.headers ?? {}),
     },
   });
@@ -43,7 +39,7 @@ async function adminJson(path: string, init: RequestInit): Promise<unknown> {
 }
 
 export async function assignUserCategoryFormAction(formData: FormData): Promise<void> {
-  await requireAdminSession("/admin/quotas");
+  const session = await requireAdminSession("/admin/quotas");
   const slackUserId = String(formData.get("slackUserId") ?? "").trim();
   const userCategoryId = String(formData.get("userCategoryId") ?? "").trim();
   if (!slackUserId || !userCategoryId) {
@@ -53,7 +49,7 @@ export async function assignUserCategoryFormAction(formData: FormData): Promise<
     await adminJson(`/admin/users/${encodeURIComponent(slackUserId)}/category`, {
       method: "PATCH",
       body: JSON.stringify({ userCategoryId }),
-    });
+    }, session.token);
   } catch (e) {
     redirect("/admin/quotas?error=" + encodeURIComponent(e instanceof Error ? e.message : "Request failed"));
   }
@@ -62,7 +58,7 @@ export async function assignUserCategoryFormAction(formData: FormData): Promise<
 }
 
 export async function resetUserBalanceFormAction(formData: FormData): Promise<void> {
-  await requireAdminSession("/admin/quotas");
+  const session = await requireAdminSession("/admin/quotas");
   const slackUserId = String(formData.get("slackUserId") ?? "").trim();
   if (!slackUserId) {
     redirect("/admin/quotas?error=" + encodeURIComponent("Slack User ID is required."));
@@ -70,7 +66,7 @@ export async function resetUserBalanceFormAction(formData: FormData): Promise<vo
   try {
     await adminJson(`/admin/users/${encodeURIComponent(slackUserId)}/reset-balance`, {
       method: "POST",
-    });
+    }, session.token);
   } catch (e) {
     redirect("/admin/quotas?error=" + encodeURIComponent(e instanceof Error ? e.message : "Request failed"));
   }
@@ -79,7 +75,7 @@ export async function resetUserBalanceFormAction(formData: FormData): Promise<vo
 }
 
 export async function bulkCategoryFormAction(formData: FormData): Promise<void> {
-  await requireAdminSession("/admin/quotas");
+  const session = await requireAdminSession("/admin/quotas");
   const raw = String(formData.get("slackUserIds") ?? "");
   const userCategoryId = String(formData.get("userCategoryId") ?? "").trim();
   const slackUserIds = raw
@@ -93,7 +89,7 @@ export async function bulkCategoryFormAction(formData: FormData): Promise<void> 
     const body = await adminJson("/admin/users/bulk-category", {
       method: "POST",
       body: JSON.stringify({ slackUserIds, userCategoryId }),
-    });
+    }, session.token);
     const updated =
       typeof body === "object" && body !== null && "updated" in body
         ? Number((body as { updated: number }).updated)
@@ -106,9 +102,9 @@ export async function bulkCategoryFormAction(formData: FormData): Promise<void> 
 }
 
 export async function resetAllBalancesAction(): Promise<{ ok: true } | { ok: false; error: string }> {
-  await requireAdminSession("/admin/quotas");
+  const session = await requireAdminSession("/admin/quotas");
   try {
-    await adminJson("/admin/balances/reset-all", { method: "POST" });
+    await adminJson("/admin/balances/reset-all", { method: "POST" }, session.token);
     revalidatePath("/admin/quotas");
     return { ok: true };
   } catch (e) {

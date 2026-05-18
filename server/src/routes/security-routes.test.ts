@@ -11,25 +11,37 @@ vi.mock("../services/stats.service", () => ({
   getAuditLog: vi.fn(),
 }));
 
+vi.mock("../services/rbac.service", () => ({
+  getExistingUserWithRole: vi.fn(),
+  getOrCreateUserWithRole: vi.fn(),
+  listRoleManagedUsers: vi.fn(),
+  setUserAdminRoleBySlackId: vi.fn(),
+}));
+
 import { app } from "../app";
 import {
   getAuditLog,
   getLeaderboard,
   getUserStatsBySlackId,
 } from "../services/stats.service";
+import { getExistingUserWithRole, listRoleManagedUsers } from "../services/rbac.service";
 
 const mockedGetLeaderboard = vi.mocked(getLeaderboard);
 const mockedGetUserStatsBySlackId = vi.mocked(getUserStatsBySlackId);
 const mockedGetAuditLog = vi.mocked(getAuditLog);
+const mockedGetExistingUserWithRole = vi.mocked(getExistingUserWithRole);
+const mockedListRoleManagedUsers = vi.mocked(listRoleManagedUsers);
 
 const signUserSession = (
   slackUserId: string,
   displayName: string,
+  role: "user" | "admin" | "super_admin" = "user",
   exp = Math.floor(Date.now() / 1000) + 3600,
 ): string => {
   const payload = JSON.stringify({
     slackUserId,
     displayName,
+    role,
     exp,
     v: 1,
   });
@@ -41,6 +53,18 @@ const signUserSession = (
 describe("security route boundaries", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedGetExistingUserWithRole.mockImplementation(async (slackUserId: string) => {
+      if (slackUserId === "U123") {
+        return { slackUserId, displayName: "Alice", role: "user" };
+      }
+      if (slackUserId === "A123") {
+        return { slackUserId, displayName: "Admin", role: "admin" };
+      }
+      if (slackUserId === "S123") {
+        return { slackUserId, displayName: "Super", role: "super_admin" };
+      }
+      return null;
+    });
   });
 
   it("allows public leaderboard without auth", async () => {
@@ -57,12 +81,12 @@ describe("security route boundaries", () => {
     });
   });
 
-  it("rejects admin route without dashboard service token", async () => {
+  it("rejects admin route without authorization token", async () => {
     const res = await request(app).get("/admin/audit-log");
     expect(res.status).toBe(401);
   });
 
-  it("allows admin route with dashboard service token", async () => {
+  it("allows admin route with admin role token", async () => {
     mockedGetAuditLog.mockResolvedValue({
       page: 1,
       pageSize: 25,
@@ -72,60 +96,52 @@ describe("security route boundaries", () => {
 
     const res = await request(app)
       .get("/admin/audit-log")
-      .set("x-dashboard-service-token", process.env.DASHBOARD_SERVICE_TOKEN as string);
+      .set("authorization", `Bearer ${signUserSession("A123", "Admin", "admin")}`);
 
     expect(res.status).toBe(200);
     expect(mockedGetAuditLog).toHaveBeenCalledOnce();
   });
 
-  it("rejects user route without valid session token", async () => {
+  it("rejects admin route with user role token", async () => {
     const res = await request(app)
-      .get("/user/me/stats")
-      .set("x-dashboard-service-token", process.env.DASHBOARD_SERVICE_TOKEN as string);
+      .get("/admin/audit-log")
+      .set("authorization", `Bearer ${signUserSession("U123", "Alice", "user")}`);
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: "Forbidden" });
+  });
+
+  it("rejects user route without valid session token", async () => {
+    const res = await request(app).get("/user/me/stats");
     expect(res.status).toBe(401);
   });
 
-  it("rejects user route with missing dashboard token even with valid bearer", async () => {
+  it("rejects user route with unknown user in token", async () => {
     const token = signUserSession("U123", "Alice");
+    mockedGetExistingUserWithRole.mockResolvedValueOnce(null);
     const res = await request(app).get("/user/me/stats").set("authorization", `Bearer ${token}`);
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ error: "Unauthorized" });
   });
 
-  it("rejects user route with wrong dashboard token", async () => {
-    const token = signUserSession("U123", "Alice");
-    const res = await request(app)
-      .get("/user/me/stats")
-      .set("x-dashboard-service-token", "wrong-token")
-      .set("authorization", `Bearer ${token}`);
+  it("rejects user route with malformed bearer token", async () => {
+    const res = await request(app).get("/user/me/stats").set("authorization", "Token malformed");
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ error: "Unauthorized" });
-  });
-
-  it("rejects user route with malformed bearer token", async () => {
-    const res = await request(app)
-      .get("/user/me/stats")
-      .set("x-dashboard-service-token", process.env.DASHBOARD_SERVICE_TOKEN as string)
-      .set("authorization", "Token malformed");
-    expect(res.status).toBe(401);
-    expect(res.body).toEqual({ error: "Missing user session token" });
   });
 
   it("rejects user route with tampered bearer token", async () => {
     const token = `${signUserSession("U123", "Alice")}tampered`;
     const res = await request(app)
       .get("/user/me/stats")
-      .set("x-dashboard-service-token", process.env.DASHBOARD_SERVICE_TOKEN as string)
       .set("authorization", `Bearer ${token}`);
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ error: "Invalid user session token" });
   });
 
   it("rejects user route with expired bearer token", async () => {
-    const token = signUserSession("U123", "Alice", Math.floor(Date.now() / 1000) - 1);
+    const token = signUserSession("U123", "Alice", "user", Math.floor(Date.now() / 1000) - 1);
     const res = await request(app)
       .get("/user/me/stats")
-      .set("x-dashboard-service-token", process.env.DASHBOARD_SERVICE_TOKEN as string)
       .set("authorization", `Bearer ${token}`);
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ error: "Invalid user session token" });
@@ -151,7 +167,6 @@ describe("security route boundaries", () => {
     const token = signUserSession("U123", "Alice");
     const res = await request(app)
       .get("/user/me/stats")
-      .set("x-dashboard-service-token", process.env.DASHBOARD_SERVICE_TOKEN as string)
       .set("authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -176,7 +191,7 @@ describe("security route boundaries", () => {
       .get("/api/leaderboard")
       .set("authorization", "Bearer wrong-internal-token");
     expect(res.status).toBe(401);
-    expect(res.body).toEqual({ error: "Unauthorized" });
+    expect(res.body).toEqual({ error: "Invalid user session token" });
   });
 
   it("allows internal API route with valid bearer token", async () => {
@@ -184,14 +199,39 @@ describe("security route boundaries", () => {
       topGivers: [{ userId: "1", displayName: "Alice", points: 30 }],
       topReceivers: [{ userId: "2", displayName: "Bob", points: 20 }],
     });
+    const token = signUserSession("U123", "Alice", "user");
     const res = await request(app)
       .get("/api/leaderboard")
-      .set("authorization", `Bearer ${process.env.INTERNAL_API_TOKEN as string}`);
+      .set("authorization", `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       topGivers: [{ displayName: "Alice", points: 30 }],
       topReceivers: [{ displayName: "Bob", points: 20 }],
     });
+  });
+
+  it("allows internal API route with admin role", async () => {
+    mockedGetLeaderboard.mockResolvedValue({
+      topGivers: [{ userId: "1", displayName: "Alice", points: 30 }],
+      topReceivers: [{ userId: "2", displayName: "Bob", points: 20 }],
+    });
+    const token = signUserSession("A123", "Admin", "admin");
+    const res = await request(app).get("/api/leaderboard").set("authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+  });
+
+  it("rejects internal API route for unknown user", async () => {
+    const token = signUserSession("UNKNOWN", "Unknown", "admin");
+    const res = await request(app).get("/api/leaderboard").set("authorization", `Bearer ${token}`);
+    expect(res.status).toBe(401);
+    expect(res.body).toEqual({ error: "Unauthorized" });
+  });
+
+  it("rejects internal API route with expired token", async () => {
+    const token = signUserSession("U123", "Alice", "user", Math.floor(Date.now() / 1000) - 1);
+    const res = await request(app).get("/api/leaderboard").set("authorization", `Bearer ${token}`);
+    expect(res.status).toBe(401);
+    expect(res.body).toEqual({ error: "Invalid user session token" });
   });
 
   it("enforces admin token across high-risk endpoints", async () => {
@@ -208,5 +248,26 @@ describe("security route boundaries", () => {
       expect(res.status, endpoint.path).toBe(401);
       expect(res.body, endpoint.path).toEqual({ error: "Unauthorized" });
     }
+  });
+
+  it("allows super admin to access role-management endpoint", async () => {
+    mockedListRoleManagedUsers.mockResolvedValue({
+      users: [],
+      total: 0,
+      page: 1,
+      pageSize: 25,
+    });
+    const res = await request(app)
+      .get("/admin/rbac/users")
+      .set("authorization", `Bearer ${signUserSession("S123", "Super", "super_admin")}`);
+    expect(res.status).toBe(200);
+  });
+
+  it("forbids admin from super-admin role-management endpoint", async () => {
+    const res = await request(app)
+      .get("/admin/rbac/users")
+      .set("authorization", `Bearer ${signUserSession("A123", "Admin", "admin")}`);
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: "Forbidden" });
   });
 });
