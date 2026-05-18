@@ -17,25 +17,43 @@ const leaderboardTotalsFilter = {
 export const performFullLeaderboardReset = async (): Promise<{ excludedFromTotals: number }> => {
   const { month, year } = getMonthYear();
   const systemUserId = await getSystemAuditUserId();
+  const session = await KudosTransactionModel.startSession();
+  let excludedFromTotals = 0;
+  try {
+    await session.withTransaction(async () => {
+      const updated = await KudosTransactionModel.updateMany(
+        leaderboardTotalsFilter,
+        {
+          $set: { countsTowardTotals: false },
+        },
+        { session },
+      );
+      excludedFromTotals = updated.modifiedCount;
 
-  const updated = await KudosTransactionModel.updateMany(leaderboardTotalsFilter, {
-    $set: { countsTowardTotals: false },
-  });
-  await KudosTransactionModel.create({
-    kind: KudosEntryKind.ADMIN_RESET_ALL,
-    countsTowardTotals: false,
-    giverId: asObjectId(systemUserId),
-    receiverId: asObjectId(systemUserId),
-    points: 0,
-    message:
-      "[Admin] Full workspace leaderboard reset. All prior kudos remain in this log; they no longer count toward displayed totals.",
-    month,
-    year,
-    channelId: null,
-    channelName: null,
-  });
+      await KudosTransactionModel.create(
+        [
+          {
+            kind: KudosEntryKind.ADMIN_RESET_ALL,
+            countsTowardTotals: false,
+            giverId: asObjectId(systemUserId),
+            receiverId: asObjectId(systemUserId),
+            points: 0,
+            message:
+              "[Admin] Full workspace leaderboard reset. All prior kudos remain in this log; they no longer count toward displayed totals.",
+            month,
+            year,
+            channelId: null,
+            channelName: null,
+          },
+        ],
+        { session },
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
 
-  return { excludedFromTotals: updated.modifiedCount };
+  return { excludedFromTotals };
 };
 
 /**
@@ -55,29 +73,43 @@ export const performUserLeaderboardResetByUserId = async (userId: string): Promi
 
   const { month, year } = getMonthYear();
   const systemUserId = await getSystemAuditUserId();
+  const session = await KudosTransactionModel.startSession();
+  let excludedFromTotals = 0;
+  try {
+    await session.withTransaction(async () => {
+      const updated = await KudosTransactionModel.updateMany(
+        {
+          ...leaderboardTotalsFilter,
+          $or: [{ giverId: asObjectId(userId) }, { receiverId: asObjectId(userId) }],
+        },
+        { $set: { countsTowardTotals: false } },
+        { session },
+      );
+      excludedFromTotals = updated.modifiedCount;
 
-  const updated = await KudosTransactionModel.updateMany(
-    {
-      ...leaderboardTotalsFilter,
-      $or: [{ giverId: asObjectId(userId) }, { receiverId: asObjectId(userId) }],
-    },
-    { $set: { countsTowardTotals: false } },
-  );
+      await KudosTransactionModel.create(
+        [
+          {
+            kind: KudosEntryKind.ADMIN_RESET_USER,
+            countsTowardTotals: false,
+            giverId: asObjectId(systemUserId),
+            receiverId: asObjectId(userId),
+            points: 0,
+            message: `[Admin] Leaderboard totals reset for ${user.displayName} (${user.slackUserId}). Prior kudos stay in this log; they no longer count toward displayed totals for this person.`,
+            month,
+            year,
+            channelId: null,
+            channelName: null,
+          },
+        ],
+        { session },
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
 
-  await KudosTransactionModel.create({
-    kind: KudosEntryKind.ADMIN_RESET_USER,
-    countsTowardTotals: false,
-    giverId: asObjectId(systemUserId),
-    receiverId: asObjectId(userId),
-    points: 0,
-    message: `[Admin] Leaderboard totals reset for ${user.displayName} (${user.slackUserId}). Prior kudos stay in this log; they no longer count toward displayed totals for this person.`,
-    month,
-    year,
-    channelId: null,
-    channelName: null,
-  });
-
-  return { excludedFromTotals: updated.modifiedCount };
+  return { excludedFromTotals };
 };
 
 export const performUserLeaderboardResetBySlackId = async (

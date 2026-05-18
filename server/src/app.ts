@@ -5,6 +5,7 @@ import pinoHttp from "pino-http";
 
 import { apiRouter } from "./routes/api.routes";
 import { adminRouter } from "./routes/admin.routes";
+import { config } from "./config";
 import { publicRouter } from "./routes/public.routes";
 import { slackRouter } from "./routes/slack.routes";
 import { userRouter } from "./routes/user.routes";
@@ -21,7 +22,18 @@ app.use(
     logger,
   }),
 );
-app.use(cors());
+const allowedCorsOrigins = new Set(config.CORS_ALLOWED_ORIGINS);
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedCorsOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
+    },
+  }),
+);
 app.use(
   express.json({
     limit: "1mb",

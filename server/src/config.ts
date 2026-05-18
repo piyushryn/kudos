@@ -23,6 +23,17 @@ const envSchema = z.object({
   DASHBOARD_SERVICE_TOKEN: z.string().min(1),
   USER_SESSION_SIGNING_SECRET: z.string().min(32),
   DASHBOARD_API_BASE_URL: z.url().optional(),
+  CORS_ALLOWED_ORIGINS: z
+    .string()
+    .optional()
+    .transform((value) =>
+      value
+        ? value
+            .split(",")
+            .map((origin) => origin.trim())
+            .filter(Boolean)
+        : [],
+    ),
   SLACK_VERBOSE_LOGGING: z
     .enum(["true", "false"])
     .default("true")

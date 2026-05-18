@@ -6,3 +6,4 @@ process.env.DASHBOARD_SERVICE_TOKEN =
   process.env.DASHBOARD_SERVICE_TOKEN ?? "dashboard-service-token-for-tests";
 process.env.USER_SESSION_SIGNING_SECRET =
   process.env.USER_SESSION_SIGNING_SECRET ?? "user-session-signing-secret-for-tests-1234567890";
+process.env.INTERNAL_API_TOKEN = process.env.INTERNAL_API_TOKEN ?? "internal-api-token-for-tests";

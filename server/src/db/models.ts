@@ -37,6 +37,16 @@ const userGivingBalanceSchema = new Schema(
 userGivingBalanceSchema.index({ userId: 1, month: 1, year: 1 }, { unique: true });
 userGivingBalanceSchema.index({ month: 1, year: 1 });
 
+const receiverDailyCapSchema = new Schema(
+  {
+    receiverId: { type: Schema.Types.ObjectId, required: true, ref: "User", index: true },
+    dayStart: { type: Date, required: true },
+    points: { type: Number, required: true, default: 0 },
+  },
+  { versionKey: false },
+);
+receiverDailyCapSchema.index({ receiverId: 1, dayStart: 1 }, { unique: true });
+
 const kudosTransactionSchema = new Schema(
   {
     kind: {
@@ -67,6 +77,7 @@ kudosTransactionSchema.index({ kind: 1, countsTowardTotals: 1 });
 type UserCategoryDoc = InferSchemaType<typeof userCategorySchema> & { _id: Types.ObjectId };
 type UserDoc = InferSchemaType<typeof userSchema> & { _id: Types.ObjectId };
 type UserGivingBalanceDoc = InferSchemaType<typeof userGivingBalanceSchema> & { _id: Types.ObjectId };
+type ReceiverDailyCapDoc = InferSchemaType<typeof receiverDailyCapSchema> & { _id: Types.ObjectId };
 type KudosTransactionDoc = InferSchemaType<typeof kudosTransactionSchema> & { _id: Types.ObjectId };
 
 const createModel = <T>(name: string, schema: Schema<T>): Model<T> =>
@@ -77,6 +88,10 @@ export const UserModel = createModel<UserDoc>("User", userSchema);
 export const UserGivingBalanceModel = createModel<UserGivingBalanceDoc>(
   "UserGivingBalance",
   userGivingBalanceSchema,
+);
+export const ReceiverDailyCapModel = createModel<ReceiverDailyCapDoc>(
+  "ReceiverDailyCap",
+  receiverDailyCapSchema,
 );
 export const KudosTransactionModel = createModel<KudosTransactionDoc>(
   "KudosTransaction",
