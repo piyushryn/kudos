@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { getBackendCookieHeaders } from "@/lib/backend-auth";
 import { requireAdminSession } from "@/lib/require-admin-session";
 import { runtimeEnv } from "@/lib/runtime-env";
 
@@ -11,13 +12,13 @@ function adminOrigin(): { base: string } {
   return { base };
 }
 
-async function adminJson(path: string, init: RequestInit, bearerToken: string): Promise<unknown> {
+async function adminJson(path: string, init: RequestInit): Promise<unknown> {
   const { base } = adminOrigin();
   const res = await fetch(`${base}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${bearerToken}`,
+      ...(await getBackendCookieHeaders()),
       ...(init.headers ?? {}),
     },
   });
@@ -39,7 +40,7 @@ async function adminJson(path: string, init: RequestInit, bearerToken: string): 
 }
 
 export async function assignUserCategoryFormAction(formData: FormData): Promise<void> {
-  const session = await requireAdminSession("/admin/quotas");
+  await requireAdminSession("/admin/quotas");
   const slackUserId = String(formData.get("slackUserId") ?? "").trim();
   const userCategoryId = String(formData.get("userCategoryId") ?? "").trim();
   if (!slackUserId || !userCategoryId) {
@@ -49,7 +50,7 @@ export async function assignUserCategoryFormAction(formData: FormData): Promise<
     await adminJson(`/admin/users/${encodeURIComponent(slackUserId)}/category`, {
       method: "PATCH",
       body: JSON.stringify({ userCategoryId }),
-    }, session.token);
+    });
   } catch (e) {
     redirect("/admin/quotas?error=" + encodeURIComponent(e instanceof Error ? e.message : "Request failed"));
   }
@@ -58,7 +59,7 @@ export async function assignUserCategoryFormAction(formData: FormData): Promise<
 }
 
 export async function resetUserBalanceFormAction(formData: FormData): Promise<void> {
-  const session = await requireAdminSession("/admin/quotas");
+  await requireAdminSession("/admin/quotas");
   const slackUserId = String(formData.get("slackUserId") ?? "").trim();
   if (!slackUserId) {
     redirect("/admin/quotas?error=" + encodeURIComponent("Slack User ID is required."));
@@ -66,7 +67,7 @@ export async function resetUserBalanceFormAction(formData: FormData): Promise<vo
   try {
     await adminJson(`/admin/users/${encodeURIComponent(slackUserId)}/reset-balance`, {
       method: "POST",
-    }, session.token);
+    });
   } catch (e) {
     redirect("/admin/quotas?error=" + encodeURIComponent(e instanceof Error ? e.message : "Request failed"));
   }
@@ -75,7 +76,7 @@ export async function resetUserBalanceFormAction(formData: FormData): Promise<vo
 }
 
 export async function bulkCategoryFormAction(formData: FormData): Promise<void> {
-  const session = await requireAdminSession("/admin/quotas");
+  await requireAdminSession("/admin/quotas");
   const raw = String(formData.get("slackUserIds") ?? "");
   const userCategoryId = String(formData.get("userCategoryId") ?? "").trim();
   const slackUserIds = raw
@@ -89,7 +90,7 @@ export async function bulkCategoryFormAction(formData: FormData): Promise<void> 
     const body = await adminJson("/admin/users/bulk-category", {
       method: "POST",
       body: JSON.stringify({ slackUserIds, userCategoryId }),
-    }, session.token);
+    });
     const updated =
       typeof body === "object" && body !== null && "updated" in body
         ? Number((body as { updated: number }).updated)
@@ -102,9 +103,9 @@ export async function bulkCategoryFormAction(formData: FormData): Promise<void> 
 }
 
 export async function resetAllBalancesAction(): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await requireAdminSession("/admin/quotas");
+  await requireAdminSession("/admin/quotas");
   try {
-    await adminJson("/admin/balances/reset-all", { method: "POST" }, session.token);
+    await adminJson("/admin/balances/reset-all", { method: "POST" });
     revalidatePath("/admin/quotas");
     return { ok: true };
   } catch (e) {

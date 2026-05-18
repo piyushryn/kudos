@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/page-header";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { USER_SESSION_COOKIE, getEffectiveSessionRole, verifyUserSessionToken } from "@/lib/user-session";
+import { resolveSessionFromApi } from "@/lib/require-user-session";
+import { USER_SESSION_COOKIE } from "@/lib/user-session";
 
 function sanitizeNext(raw: string | undefined): string {
   if (!raw || !raw.startsWith("/admin") || raw.startsWith("//")) {
@@ -23,9 +24,8 @@ export default async function AdminLoginPage({
   const sp = await searchParams;
   const next = sanitizeNext(sp.next);
   const jar = await cookies();
-  const claims = verifyUserSessionToken(jar.get(USER_SESSION_COOKIE)?.value);
-  const role = claims ? getEffectiveSessionRole(claims) : null;
-  if (claims && (role === "admin" || role === "super_admin")) {
+  const session = jar.get(USER_SESSION_COOKIE)?.value ? await resolveSessionFromApi() : null;
+  if (session && (session.role === "admin" || session.role === "super_admin")) {
     redirect(next);
   }
 

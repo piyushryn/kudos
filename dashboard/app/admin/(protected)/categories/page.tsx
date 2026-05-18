@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+import { getBackendCookieHeaders } from "@/lib/backend-auth";
 import { requireAdminSession } from "@/lib/require-admin-session";
 import { runtimeEnv } from "@/lib/runtime-env";
 
@@ -21,10 +22,10 @@ type CategoryRow = {
   userCount: number;
 };
 
-async function loadCategories(token: string): Promise<{ categories: CategoryRow[] } | { error: string }> {
+async function loadCategories(): Promise<{ categories: CategoryRow[] } | { error: string }> {
   const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
   const res = await fetch(`${base}/admin/user-categories`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: await getBackendCookieHeaders(),
     cache: "no-store",
   });
   if (!res.ok) {
@@ -38,9 +39,9 @@ export default async function AdminCategoriesPage({
 }: {
   searchParams: Promise<{ notice?: string; error?: string }>;
 }) {
-  const session = await requireAdminSession("/admin/categories");
+  await requireAdminSession("/admin/categories");
   const sp = await searchParams;
-  const data = await loadCategories(session.token);
+  const data = await loadCategories();
 
   return (
     <>

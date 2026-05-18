@@ -6,6 +6,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BulkUserIdChipInput, type UserOption, UserIdInput } from "@/components/user-id-picker";
+import { getBackendCookieHeaders } from "@/lib/backend-auth";
 import { requireAdminSession } from "@/lib/require-admin-session";
 import { runtimeEnv } from "@/lib/runtime-env";
 
@@ -21,10 +22,10 @@ type AdminUserCategory = {
 type CategoryListResponse = { categories: AdminUserCategory[] } | { error: string };
 type UserListResponse = { users: UserOption[] } | { error: string };
 
-async function loadCategoryOptions(token: string): Promise<CategoryListResponse> {
+async function loadCategoryOptions(): Promise<CategoryListResponse> {
   const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
   const res = await fetch(`${base}/admin/user-categories`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: await getBackendCookieHeaders(),
     cache: "no-store",
   });
   if (!res.ok) {
@@ -41,7 +42,7 @@ async function loadCategoryOptions(token: string): Promise<CategoryListResponse>
   };
 }
 
-async function loadUserOptions(token: string): Promise<UserListResponse> {
+async function loadUserOptions(): Promise<UserListResponse> {
   const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
 
   const users: UserOption[] = [];
@@ -56,7 +57,7 @@ async function loadUserOptions(token: string): Promise<UserListResponse> {
     });
 
     const res = await fetch(`${base}/admin/users?${qs}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: await getBackendCookieHeaders(),
       cache: "no-store",
     });
 
@@ -121,10 +122,10 @@ export default async function AdminQuotasPage({
 }: {
   searchParams: Promise<{ notice?: string; error?: string }>;
 }) {
-  const session = await requireAdminSession("/admin/quotas");
+  await requireAdminSession("/admin/quotas");
   const sp = await searchParams;
-  const catData = await loadCategoryOptions(session.token);
-  const userData = await loadUserOptions(session.token);
+  const catData = await loadCategoryOptions();
+  const userData = await loadUserOptions();
   const categories = "categories" in catData ? catData.categories : undefined;
   const users = "users" in userData ? userData.users : [];
   const categoryLoadError = "error" in catData ? catData.error : undefined;

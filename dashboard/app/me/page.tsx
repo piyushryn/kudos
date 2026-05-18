@@ -4,8 +4,8 @@ import { fetchMyUserStats } from "@/lib/api";
 import { requireUserSession } from "@/lib/require-user-session";
 
 export default async function MyStatsPage() {
-  const session = await requireUserSession("/me");
-  const stats = await fetchMyUserStats(session.token);
+  await requireUserSession("/me");
+  const stats = await fetchMyUserStats();
   const cat = stats.userCategory;
 
   return (

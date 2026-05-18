@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { getBackendCookieHeaders } from "@/lib/backend-auth";
 import { requireAdminSession } from "@/lib/require-admin-session";
 import { runtimeEnv } from "@/lib/runtime-env";
 
@@ -24,7 +25,7 @@ export async function patchUserRoleAction(formData: FormData): Promise<void> {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${session.token}`,
+      ...(await getBackendCookieHeaders()),
     },
     body: JSON.stringify({ role }),
     cache: "no-store",

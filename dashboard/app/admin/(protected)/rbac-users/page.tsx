@@ -5,6 +5,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getBackendCookieHeaders } from "@/lib/backend-auth";
 import { requireAdminSession } from "@/lib/require-admin-session";
 import { runtimeEnv } from "@/lib/runtime-env";
 
@@ -25,9 +26,9 @@ type RoleManagedUsersResponse = {
 
 const dashboardApiBase = () => (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
 
-async function loadRoleManagedUsers(token: string): Promise<RoleManagedUsersResponse | { error: string }> {
+async function loadRoleManagedUsers(): Promise<RoleManagedUsersResponse | { error: string }> {
   const res = await fetch(`${dashboardApiBase()}/admin/rbac/users?page=1&limit=200`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: await getBackendCookieHeaders(),
     cache: "no-store",
   });
 
@@ -48,7 +49,7 @@ export default async function AdminRbacUsersPage({
   }
 
   const sp = await searchParams;
-  const data = await loadRoleManagedUsers(session.token);
+  const data = await loadRoleManagedUsers();
 
   return (
     <>

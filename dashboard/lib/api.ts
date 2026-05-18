@@ -1,12 +1,15 @@
+import { getBackendCookieHeaders } from "@/lib/backend-auth";
 import { runtimeEnv } from "@/lib/runtime-env";
 import { requireAdminSession } from "@/lib/require-admin-session";
 
 const apiBaseUrl = runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000";
 
 async function request<T>(path: string, headers?: HeadersInit): Promise<T> {
+  const cookieHeaders = await getBackendCookieHeaders();
   const response = await fetch(`${apiBaseUrl}${path}`, {
     headers: {
       "Content-Type": "application/json",
+      ...cookieHeaders,
       ...(headers ?? {}),
     },
     cache: "no-store",
@@ -50,13 +53,13 @@ export type UserStatsResponse = {
 export async function requestAdminJsonWithInit<T>(
   path: string,
   init: RequestInit,
-  bearerToken: string,
 ): Promise<T> {
+  const cookieHeaders = await getBackendCookieHeaders();
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${bearerToken}`,
+      ...cookieHeaders,
       ...(init.headers ?? {}),
     },
     cache: "no-store",
@@ -102,20 +105,15 @@ export type AuditLogResponse = {
 
 export const fetchLeaderboard = () => request<LeaderboardResponse>("/public/leaderboard");
 export const fetchAdminLeaderboard = async () => {
-  const session = await requireAdminSession("/admin/leaderboard-reset");
+  await requireAdminSession("/admin/leaderboard-reset");
   return request<AdminLeaderboardResponse>("/admin/leaderboard", {
-    Authorization: `Bearer ${session.token}`,
   });
 };
 
-export const fetchMyUserStats = (userSessionToken: string) =>
-  request<UserStatsResponse>("/user/me/stats", {
-    Authorization: `Bearer ${userSessionToken}`,
-  });
+export const fetchMyUserStats = () => request<UserStatsResponse>("/user/me/stats");
 
 export const fetchAuditLog = async (page = 1, pageSize = 50) => {
-  const session = await requireAdminSession("/admin/audit-log");
+  await requireAdminSession("/admin/audit-log");
   return request<AuditLogResponse>(`/admin/audit-log?page=${page}&pageSize=${pageSize}`, {
-    Authorization: `Bearer ${session.token}`,
   });
 };

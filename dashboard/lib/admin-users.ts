@@ -1,3 +1,4 @@
+import { getBackendCookieHeaders } from "@/lib/backend-auth";
 import { runtimeEnv } from "@/lib/runtime-env";
 import { requireAdminSession } from "@/lib/require-admin-session";
 
@@ -28,7 +29,7 @@ export async function loadAdminUsers(
   page: number,
 ): Promise<AdminUsersResponse | { error: string }> {
   const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
-  const session = await requireAdminSession("/admin/users");
+  await requireAdminSession("/admin/users");
   const qs = new URLSearchParams({
     page: String(Math.max(1, page)),
     limit: "40",
@@ -37,7 +38,7 @@ export async function loadAdminUsers(
     qs.set("search", search.trim());
   }
   const res = await fetch(`${base}/admin/users?${qs}`, {
-    headers: { Authorization: `Bearer ${session.token}` },
+    headers: await getBackendCookieHeaders(),
     cache: "no-store",
   });
   if (!res.ok) {

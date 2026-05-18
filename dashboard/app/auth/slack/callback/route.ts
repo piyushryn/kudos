@@ -6,7 +6,6 @@ import {
   USER_SESSION_COOKIE,
   USER_SESSION_MAX_AGE_SEC,
   createUserSessionToken,
-  isEnvSuperAdminSlackUserId,
 } from "@/lib/user-session";
 
 const OAUTH_STATE_COOKIE = "kudos_slack_oauth_state";
@@ -130,10 +129,6 @@ export async function GET(request: Request) {
     resolved = await resolveSessionRole(slackUserId, displayName);
   } catch {
     return failedAuthRedirect(request, "Unable to resolve role for this user.");
-  }
-
-  if (isEnvSuperAdminSlackUserId(resolved.slackUserId)) {
-    resolved = { ...resolved, role: "super_admin" };
   }
 
   const publicOrigin = publicOriginFromRequest(request);
