@@ -15,11 +15,11 @@ import { app } from "../app";
 import {
   getAuditLog,
   getLeaderboard,
-  getUserStatsForSlackId,
+  getUserStatsBySlackId,
 } from "../services/stats.service";
 
 const mockedGetLeaderboard = vi.mocked(getLeaderboard);
-const mockedGetUserStatsForSlackId = vi.mocked(getUserStatsForSlackId);
+const mockedGetUserStatsBySlackId = vi.mocked(getUserStatsBySlackId);
 const mockedGetAuditLog = vi.mocked(getAuditLog);
 
 const signUserSession = (slackUserId: string, displayName: string): string => {
@@ -82,7 +82,7 @@ describe("security route boundaries", () => {
   });
 
   it("returns only authenticated user stats on /user/me/stats", async () => {
-    mockedGetUserStatsForSlackId.mockResolvedValue({
+    mockedGetUserStatsBySlackId.mockResolvedValue({
       slackUserId: "U123",
       displayName: "Alice",
       totalGiven: 10,
@@ -105,7 +105,7 @@ describe("security route boundaries", () => {
       .set("authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(200);
-    expect(mockedGetUserStatsForSlackId).toHaveBeenCalledWith("U123");
+    expect(mockedGetUserStatsBySlackId).toHaveBeenCalledWith("U123", "Alice");
     expect(res.body.slackUserId).toBe("U123");
   });
 });

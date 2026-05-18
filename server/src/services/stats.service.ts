@@ -59,8 +59,8 @@ const kudoTotalsWhere = {
   countsTowardTotals: true,
 } as const;
 
-export const getUserStatsBySlackId = async (slackUserId: string) => {
-  const user = await getOrCreateUser(slackUserId);
+export const getUserStatsBySlackId = async (slackUserId: string, suggestedDisplayName?: string) => {
+  const user = await getOrCreateUser(slackUserId, suggestedDisplayName);
   return buildUserStatsResponse(user);
 };
 
