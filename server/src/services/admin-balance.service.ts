@@ -1,66 +1,54 @@
 import { config } from "../config";
-import { prisma } from "../db/prisma";
+import { asObjectId } from "../db/mappers";
+import { UserCategoryModel, UserGivingBalanceModel, UserModel } from "../db/models";
 import { getMonthYear } from "../utils/date";
 import { effectiveQuotaForUser } from "../utils/balance-quota";
 import { AppError } from "../utils/errors";
 
 export const upsertCurrentMonthBalanceToQuota = async (userId: string): Promise<void> => {
   const { month, year } = getMonthYear();
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: { userCategory: true },
-  });
+  const user = await UserModel.findById(asObjectId(userId)).populate("userCategoryId").lean().exec();
   if (!user) {
     throw new AppError("User not found.", 404);
   }
-  const quota = effectiveQuotaForUser(user);
-
-  await prisma.userGivingBalance.upsert({
-    where: {
-      userId_month_year: {
-        userId,
-        month,
-        year,
-      },
-    },
-    create: {
-      userId,
-      month,
-      year,
-      remainingPoints: quota,
-    },
-    update: {
-      remainingPoints: quota,
+  const quota = effectiveQuotaForUser({
+    userCategory: {
+      monthlyGivingQuota: ((user.userCategoryId as unknown as { monthlyGivingQuota?: number | null })
+        .monthlyGivingQuota ??
+        null),
     },
   });
+
+  await UserGivingBalanceModel.findOneAndUpdate(
+    { userId: asObjectId(userId), month, year },
+    { $set: { remainingPoints: quota }, $setOnInsert: { userId: asObjectId(userId), month, year } },
+    { upsert: true },
+  ).exec();
 };
 
 export const setUserCategoryBySlackId = async (
   slackUserId: string,
   userCategoryId: string,
 ): Promise<void> => {
-  const user = await prisma.user.findUnique({ where: { slackUserId } });
+  const user = await UserModel.findOne({ slackUserId }, { _id: 1 }).lean().exec();
   if (!user) {
     throw new AppError(
       `No user with Slack ID ${slackUserId}. They must interact with the app first, or check the ID.`,
       404,
     );
   }
-  const category = await prisma.userCategory.findUnique({ where: { id: userCategoryId } });
+  const category = await UserCategoryModel.findById(asObjectId(userCategoryId), { _id: 1 }).lean().exec();
   if (!category) {
     throw new AppError("Unknown user category.", 404);
   }
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { userCategoryId },
-  });
+  await UserModel.findByIdAndUpdate(user._id, { userCategoryId: category._id }).exec();
 };
 
 export const bulkSetUserCategoryBySlackIds = async (
   slackUserIds: string[],
   userCategoryId: string,
 ): Promise<{ updated: number }> => {
-  const category = await prisma.userCategory.findUnique({ where: { id: userCategoryId } });
+  const category = await UserCategoryModel.findById(asObjectId(userCategoryId), { _id: 1 }).lean().exec();
   if (!category) {
     throw new AppError("Unknown user category.", 404);
   }
@@ -72,49 +60,40 @@ export const bulkSetUserCategoryBySlackIds = async (
     throw new AppError("At most 500 Slack user IDs per request.", 400);
   }
 
-  const result = await prisma.user.updateMany({
-    where: { slackUserId: { in: normalized } },
-    data: { userCategoryId },
-  });
+  const result = await UserModel.updateMany(
+    { slackUserId: { $in: normalized } },
+    { $set: { userCategoryId: category._id } },
+  ).exec();
 
-  return { updated: result.count };
+  return { updated: result.modifiedCount };
 };
 
 export const resetCurrentMonthBalanceBySlackId = async (slackUserId: string): Promise<void> => {
-  const user = await prisma.user.findUnique({ where: { slackUserId } });
+  const user = await UserModel.findOne({ slackUserId }, { _id: 1 }).lean().exec();
   if (!user) {
     throw new AppError(`No user with Slack ID ${slackUserId}. They may not have used the app yet.`, 404);
   }
-  await upsertCurrentMonthBalanceToQuota(user.id);
+  await upsertCurrentMonthBalanceToQuota(String(user._id));
 };
 
 export const resetAllUsersCurrentMonthBalances = async (): Promise<{ usersReset: number }> => {
   const { month, year } = getMonthYear();
-  const allUsers = await prisma.user.findMany({ include: { userCategory: true } });
+  const allUsers = await UserModel.find({}).populate("userCategoryId").lean().exec();
 
-  await prisma.$transaction(async (tx) => {
-    for (const user of allUsers) {
-      const quota = effectiveQuotaForUser(user);
-      await tx.userGivingBalance.upsert({
-        where: {
-          userId_month_year: {
-            userId: user.id,
-            month,
-            year,
+  for (const user of allUsers) {
+        const quota = effectiveQuotaForUser({
+          userCategory: {
+            monthlyGivingQuota: ((user.userCategoryId as unknown as { monthlyGivingQuota?: number | null })
+              .monthlyGivingQuota ??
+              null),
           },
-        },
-        create: {
-          userId: user.id,
-          month,
-          year,
-          remainingPoints: quota,
-        },
-        update: {
-          remainingPoints: quota,
-        },
-      });
+        });
+        await UserGivingBalanceModel.findOneAndUpdate(
+          { userId: user._id, month, year },
+          { $set: { remainingPoints: quota }, $setOnInsert: { userId: user._id, month, year } },
+          { upsert: true },
+        ).exec();
     }
-  });
 
   return { usersReset: allUsers.length };
 };
@@ -147,49 +126,51 @@ export const listUsersForAdmin = async (
   const where =
     search && search.trim().length > 0
       ? {
-          OR: [
-            { displayName: { contains: search.trim(), mode: "insensitive" as const } },
-            { slackUserId: { contains: search.trim() } },
+          $or: [
+            { displayName: { $regex: search.trim(), $options: "i" } },
+            { slackUserId: { $regex: search.trim() } },
           ],
         }
       : {};
 
   const [users, total] = await Promise.all([
-    prisma.user.findMany({
-      where,
-      orderBy: { displayName: "asc" },
-      skip,
-      take: pageSize,
-      include: { userCategory: true },
-    }),
-    prisma.user.count({ where }),
+    UserModel.find(where).sort({ displayName: 1 }).skip(skip).limit(pageSize).populate("userCategoryId").lean().exec(),
+    UserModel.countDocuments(where),
   ]);
 
-  const ids = users.map((u) => u.id);
+  const ids = users.map((u) => u._id);
   const balances =
     ids.length === 0
       ? []
-      : await prisma.userGivingBalance.findMany({
-          where: {
-            userId: { in: ids },
-            month,
-            year,
-          },
-        });
-  const balByUser = new Map(balances.map((b) => [b.userId, b.remainingPoints]));
+      : await UserGivingBalanceModel.find({
+          userId: { $in: ids },
+          month,
+          year,
+        })
+          .lean()
+          .exec();
+  const balByUser = new Map(balances.map((b) => [String(b.userId), b.remainingPoints]));
 
   const rows: AdminUserRow[] = users.map((u) => {
-    const effective = effectiveQuotaForUser(u);
-    const remaining = balByUser.get(u.id);
+    const category = u.userCategoryId as unknown as {
+      _id: unknown;
+      key: string;
+      name: string;
+      monthlyGivingQuota?: number | null;
+    };
+    const effective = effectiveQuotaForUser({
+      userCategory: { monthlyGivingQuota: category.monthlyGivingQuota ?? null },
+    });
+    const remaining = balByUser.get(String(u._id));
     return {
-      id: u.id,
+      id: String(u._id),
       slackUserId: u.slackUserId,
       displayName: u.displayName,
       userCategory: {
-        id: u.userCategory.id,
-        key: u.userCategory.key,
-        name: u.userCategory.name,
-        monthlyGivingQuota: u.userCategory.monthlyGivingQuota,
+        id: String(category._id),
+        key: category.key,
+        name: category.name,
+        monthlyGivingQuota: category.monthlyGivingQuota ?? null,
       },
       effectiveMonthlyQuota: effective,
       remainingBalanceThisMonth: remaining ?? effective,

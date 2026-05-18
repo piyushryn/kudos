@@ -1,43 +1,34 @@
 import cron from "node-cron";
 
 import { config } from "../config";
-import { prisma } from "../db/prisma";
+import { UserGivingBalanceModel, UserModel } from "../db/models";
 import { logger } from "../logger";
 import { getMonthYear } from "../utils/date";
 import { effectiveQuotaForUser } from "../utils/balance-quota";
 
 export const runMonthlyBalanceProvisioning = async (): Promise<void> => {
   const { month, year } = getMonthYear();
-  const users = await prisma.user.findMany({
-    include: { userCategory: true },
-  });
+  const users = await UserModel.find({}).populate("userCategoryId").lean().exec();
 
   if (users.length === 0) {
     logger.info("Monthly reset skipped: no users found.");
     return;
   }
 
-  await prisma.$transaction(
-    users.map((user) => {
-      const quota = effectiveQuotaForUser(user);
-      return prisma.userGivingBalance.upsert({
-        where: {
-          userId_month_year: {
-            userId: user.id,
-            month,
-            year,
-          },
-        },
-        create: {
-          userId: user.id,
-          month,
-          year,
-          remainingPoints: quota,
-        },
-        update: {},
-      });
-    }),
-  );
+  for (const user of users) {
+    const quota = effectiveQuotaForUser({
+      userCategory: {
+        monthlyGivingQuota: ((user.userCategoryId as unknown as { monthlyGivingQuota?: number | null })
+          .monthlyGivingQuota ??
+          null),
+      },
+    });
+    await UserGivingBalanceModel.findOneAndUpdate(
+      { userId: user._id, month, year },
+      { $setOnInsert: { userId: user._id, month, year, remainingPoints: quota } },
+      { upsert: true },
+    ).exec();
+  }
 
   logger.info(
     {

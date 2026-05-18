@@ -5,12 +5,12 @@ Production-ready MVP for internal Slack kudos:
 - Employees get a fixed monthly giving balance (default `100`).
 - Giving kudos deducts only from the giver's monthly balance.
 - Receiving kudos does **not** increase giving power.
-- Append-only kudos and admin-reset history in PostgreSQL (rows are not deleted for leaderboard resets).
+- Append-only kudos and admin-reset history in MongoDB (documents are not deleted for leaderboard resets).
 - Slack slash commands + Next.js analytics dashboard.
 
 ## Project Structure
 
-- `server/` - Node.js + Express + Prisma + Slack command handling
+- `server/` - Node.js + Express + Mongoose + Slack command handling
 - `dashboard/` - Next.js internal dashboard (leaderboard, user stats, audit log)
 
 ## One-click Docker run
@@ -24,11 +24,10 @@ Services:
 
 - Dashboard: `http://localhost:3000`
 - API server: `http://localhost:4000`
-- Postgres: `localhost:5432`
+- MongoDB: `localhost:27017`
 
 Notes:
 
-- `migrate` service runs `prisma migrate deploy` before API startup.
 - Set real `SLACK_SIGNING_SECRET` and `SLACK_BOT_TOKEN` in root `.env`.
 - Stop stack with `docker compose down` (add `-v` to remove DB volume).
 
@@ -49,7 +48,7 @@ The dashboard container still calls the API internally at `http://server:4000` (
 
 - Node.js 20+
 - npm 10+
-- PostgreSQL 14+
+- MongoDB 7+
 - Slack workspace with permissions to create slash commands
 
 ## 1) Backend Setup
@@ -61,7 +60,7 @@ cp .env.example .env
 
 Required env vars in `server/.env`:
 
-- `DATABASE_URL`
+- `MONGODB_URI`
 - `SLACK_SIGNING_SECRET`
 - `SLACK_BOT_TOKEN`
 - `INTERNAL_API_TOKEN` (used by dashboard internal API calls)
@@ -78,9 +77,7 @@ Install and prepare DB:
 
 ```bash
 npm install
-npm run prisma:generate
-npm run prisma:migrate
-npm run prisma:seed
+npm run db:seed
 ```
 
 Run backend:
@@ -243,7 +240,7 @@ npm run build
 ## Deployment Notes
 
 - Deploy `server` behind HTTPS for Slack signature security.
-- Run Prisma migrations before starting app in production.
+- Ensure MongoDB is reachable before starting app in production.
 - Ensure server clock is correct (Slack signature replay protection checks timestamp).
 - Lock down internal APIs via network and `INTERNAL_API_TOKEN`.
-- Do not delete `kudos_transactions` for leaderboard resets; use `counts_toward_totals` + `kind` (see Prisma schema) so the audit log stays complete while totals can be cleared.
+- Do not delete kudos transaction documents for leaderboard resets; use `countsTowardTotals` + `kind` so the audit log stays complete while totals can be cleared.

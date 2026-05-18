@@ -1,6 +1,6 @@
-import { KudosEntryKind } from "@prisma/client";
-
-import { prisma } from "../db/prisma";
+import { KudosEntryKind } from "../db/constants";
+import { asObjectId } from "../db/mappers";
+import { KudosTransactionModel, UserModel } from "../db/models";
 import { AppError } from "../utils/errors";
 import { getMonthYear } from "../utils/date";
 import { getSystemAuditUserId } from "./system-audit-user.service";
@@ -18,42 +18,37 @@ export const performFullLeaderboardReset = async (): Promise<{ excludedFromTotal
   const { month, year } = getMonthYear();
   const systemUserId = await getSystemAuditUserId();
 
-  const result = await prisma.$transaction(async (tx) => {
-    const updated = await tx.kudosTransaction.updateMany({
-      where: leaderboardTotalsFilter,
-      data: { countsTowardTotals: false },
-    });
-
-    await tx.kudosTransaction.create({
-      data: {
-        kind: KudosEntryKind.ADMIN_RESET_ALL,
-        countsTowardTotals: false,
-        giverId: systemUserId,
-        receiverId: systemUserId,
-        points: 0,
-        message:
-          "[Admin] Full workspace leaderboard reset. All prior kudos remain in this log; they no longer count toward displayed totals.",
-        month,
-        year,
-        channelId: null,
-        channelName: null,
-      },
-    });
-
-    return updated.count;
+  const updated = await KudosTransactionModel.updateMany(leaderboardTotalsFilter, {
+    $set: { countsTowardTotals: false },
+  });
+  await KudosTransactionModel.create({
+    kind: KudosEntryKind.ADMIN_RESET_ALL,
+    countsTowardTotals: false,
+    giverId: asObjectId(systemUserId),
+    receiverId: asObjectId(systemUserId),
+    points: 0,
+    message:
+      "[Admin] Full workspace leaderboard reset. All prior kudos remain in this log; they no longer count toward displayed totals.",
+    month,
+    year,
+    channelId: null,
+    channelName: null,
   });
 
-  return { excludedFromTotals: result };
+  return { excludedFromTotals: updated.modifiedCount };
 };
 
 /**
  * Excludes that user's kudo rows from totals and appends an audit log row. No rows are deleted.
  */
 export const performUserLeaderboardResetByUserId = async (userId: string): Promise<{ excludedFromTotals: number }> => {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, displayName: true, slackUserId: true },
-  });
+  const user = await UserModel.findById(asObjectId(userId), {
+    _id: 1,
+    displayName: 1,
+    slackUserId: 1,
+  })
+    .lean()
+    .exec();
   if (!user) {
     throw new AppError("User not found", 404);
   }
@@ -61,45 +56,36 @@ export const performUserLeaderboardResetByUserId = async (userId: string): Promi
   const { month, year } = getMonthYear();
   const systemUserId = await getSystemAuditUserId();
 
-  const result = await prisma.$transaction(async (tx) => {
-    const updated = await tx.kudosTransaction.updateMany({
-      where: {
-        ...leaderboardTotalsFilter,
-        OR: [{ giverId: userId }, { receiverId: userId }],
-      },
-      data: { countsTowardTotals: false },
-    });
+  const updated = await KudosTransactionModel.updateMany(
+    {
+      ...leaderboardTotalsFilter,
+      $or: [{ giverId: asObjectId(userId) }, { receiverId: asObjectId(userId) }],
+    },
+    { $set: { countsTowardTotals: false } },
+  );
 
-    await tx.kudosTransaction.create({
-      data: {
-        kind: KudosEntryKind.ADMIN_RESET_USER,
-        countsTowardTotals: false,
-        giverId: systemUserId,
-        receiverId: user.id,
-        points: 0,
-        message: `[Admin] Leaderboard totals reset for ${user.displayName} (${user.slackUserId}). Prior kudos stay in this log; they no longer count toward displayed totals for this person.`,
-        month,
-        year,
-        channelId: null,
-        channelName: null,
-      },
-    });
-
-    return updated.count;
+  await KudosTransactionModel.create({
+    kind: KudosEntryKind.ADMIN_RESET_USER,
+    countsTowardTotals: false,
+    giverId: asObjectId(systemUserId),
+    receiverId: asObjectId(userId),
+    points: 0,
+    message: `[Admin] Leaderboard totals reset for ${user.displayName} (${user.slackUserId}). Prior kudos stay in this log; they no longer count toward displayed totals for this person.`,
+    month,
+    year,
+    channelId: null,
+    channelName: null,
   });
 
-  return { excludedFromTotals: result };
+  return { excludedFromTotals: updated.modifiedCount };
 };
 
 export const performUserLeaderboardResetBySlackId = async (
   slackUserId: string,
 ): Promise<{ excludedFromTotals: number }> => {
-  const user = await prisma.user.findUnique({
-    where: { slackUserId },
-    select: { id: true },
-  });
+  const user = await UserModel.findOne({ slackUserId }, { _id: 1 }).lean().exec();
   if (!user) {
     throw new AppError("No user with that Slack ID.", 404);
   }
-  return performUserLeaderboardResetByUserId(user.id);
+  return performUserLeaderboardResetByUserId(String(user._id));
 };

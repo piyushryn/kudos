@@ -1,29 +1,36 @@
-import { KudosEntryKind } from "@prisma/client";
+import { KudosEntryKind } from "./constants";
 
-import { prisma } from "./prisma";
-
-const totalsWhere = {
-  kind: KudosEntryKind.KUDO,
-  countsTowardTotals: true,
-} as const;
+import { KudosTransactionModel } from "./models";
 
 export const kudosRepository = {
-  groupTopGivers(limit: number) {
-    return prisma.kudosTransaction.groupBy({
-      by: ["giverId"],
-      where: totalsWhere,
-      _sum: { points: true },
-      orderBy: { _sum: { points: "desc" } },
-      take: limit,
-    });
+  async groupTopGivers(limit: number) {
+    const rows = await KudosTransactionModel.aggregate<{
+      _id: unknown;
+      points: number;
+    }>([
+      { $match: { kind: KudosEntryKind.KUDO, countsTowardTotals: true } },
+      { $group: { _id: "$giverId", points: { $sum: "$points" } } },
+      { $sort: { points: -1 } },
+      { $limit: limit },
+    ]);
+    return rows.map((row) => ({
+      giverId: String(row._id),
+      _sum: { points: row.points },
+    }));
   },
-  groupTopReceivers(limit: number) {
-    return prisma.kudosTransaction.groupBy({
-      by: ["receiverId"],
-      where: totalsWhere,
-      _sum: { points: true },
-      orderBy: { _sum: { points: "desc" } },
-      take: limit,
-    });
+  async groupTopReceivers(limit: number) {
+    const rows = await KudosTransactionModel.aggregate<{
+      _id: unknown;
+      points: number;
+    }>([
+      { $match: { kind: KudosEntryKind.KUDO, countsTowardTotals: true } },
+      { $group: { _id: "$receiverId", points: { $sum: "$points" } } },
+      { $sort: { points: -1 } },
+      { $limit: limit },
+    ]);
+    return rows.map((row) => ({
+      receiverId: String(row._id),
+      _sum: { points: row.points },
+    }));
   },
 };

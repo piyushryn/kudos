@@ -3,15 +3,6 @@ import { createHmac } from "crypto";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@prisma/client", () => ({
-  PrismaClient: class PrismaClient {},
-  KudosEntryKind: {
-    KUDO: "KUDO",
-    ADMIN_RESET_USER: "ADMIN_RESET_USER",
-    ADMIN_RESET_ALL: "ADMIN_RESET_ALL",
-  },
-}));
-
 vi.mock("../services/stats.service", () => ({
   getLeaderboard: vi.fn(),
   getUserStatsBySlackId: vi.fn(),

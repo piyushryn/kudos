@@ -1,0 +1,5 @@
+export enum KudosEntryKind {
+  KUDO = "KUDO",
+  ADMIN_RESET_USER = "ADMIN_RESET_USER",
+  ADMIN_RESET_ALL = "ADMIN_RESET_ALL",
+}

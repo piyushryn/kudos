@@ -50,6 +50,7 @@ describe("parseKudosAtHandleDraft", () => {
 
 describe("resolveKudosSlashText", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.mocked(resolveSlackUserIdFromHandle).mockResolvedValue("U_RESOLVED");
   });
 

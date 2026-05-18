@@ -1,58 +1,35 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: kudos-postgres
+  mongo:
+    image: mongo:8
+    container_name: kudos-mongo
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-kudos}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-kudos}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-kudos}
     ports:
-      - "5432:5432"
+      - "27017:27017"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mongo_data:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-kudos}"]
+      test:
+        [
+          "CMD-SHELL",
+          "echo 'db.runCommand({ ping: 1 }).ok' | mongosh mongodb://${MONGO_ROOT_USERNAME:-kudos}:${MONGO_ROOT_PASSWORD:-kudos}@localhost:27017/admin --quiet",
+        ]
       interval: 5s
       timeout: 5s
       retries: 20
-
-  migrate:
-    build:
-      context: ./server
-    container_name: kudos-migrate
-    restart: "no"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-kudos}
-      SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
-      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
-      DEFAULT_MONTHLY_BALANCE: ${DEFAULT_MONTHLY_BALANCE:-100}
-      MAX_KUDOS_PER_TRANSACTION: ${MAX_KUDOS_PER_TRANSACTION:-50}
-      ENABLE_DAILY_RECEIVER_CAP: ${ENABLE_DAILY_RECEIVER_CAP:-false}
-      DAILY_RECEIVER_CAP: ${DAILY_RECEIVER_CAP:-100}
-      CRON_MONTHLY_RESET: ${CRON_MONTHLY_RESET:-0 2 1 * *}
-      ENABLE_MANUAL_MONTHLY_RESET: ${ENABLE_MANUAL_MONTHLY_RESET:-false}
-      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN}
-      DASHBOARD_SERVICE_TOKEN: ${DASHBOARD_SERVICE_TOKEN}
-      USER_SESSION_SIGNING_SECRET: ${USER_SESSION_SIGNING_SECRET}
-    command: ["sh", "-c", "npx prisma migrate deploy"]
 
   server:
     build:
       context: ./server
     container_name: kudos-server
     depends_on:
-      postgres:
+      mongo:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-kudos}
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:-kudos}:${MONGO_ROOT_PASSWORD:-kudos}@mongo:27017/kudos?authSource=admin
       SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
       SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
       DEFAULT_MONTHLY_BALANCE: ${DEFAULT_MONTHLY_BALANCE:-100}
@@ -91,22 +68,6 @@ services:
     ports:
       - "3000:3000"
 
-  pgadmin:
-    image: dpage/pgadmin4:8
-    container_name: kudos-pgadmin
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@kudos.local}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
-      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "True"
-      PGADMIN_CONFIG_CONSOLE_LOG_LEVEL: 30
-    ports:
-      - "5050:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-
   nginx:
     image: nginx:1.27-alpine
     container_name: kudos-nginx
@@ -124,5 +85,4 @@ services:
       - ./certbot/conf:/etc/letsencrypt:ro
 
 volumes:
-  postgres_data:
-  pgadmin_data:
+  mongo_data:

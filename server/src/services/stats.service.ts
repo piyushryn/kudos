@@ -1,8 +1,8 @@
-import { KudosEntryKind } from "@prisma/client";
-
 import { config } from "../config";
+import { KudosEntryKind } from "../db/constants";
 import { kudosRepository } from "../db/kudos.repository";
-import { prisma } from "../db/prisma";
+import { asObjectId } from "../db/mappers";
+import { KudosTransactionModel, UserModel } from "../db/models";
 import { userRepository } from "../db/user.repository";
 import { getMonthYear } from "../utils/date";
 import { AppError } from "../utils/errors";
@@ -29,11 +29,15 @@ export const getLeaderboard = async (limit = 10) => {
     ]),
   ];
 
-  const users = await prisma.user.findMany({
-    where: { id: { in: userIds } },
-    select: { id: true, displayName: true },
-  });
-  const userMap = new Map(users.map((u) => [u.id, u.displayName]));
+  const users = userIds.length
+    ? await UserModel.find(
+        { _id: { $in: userIds.map((id) => asObjectId(id)) } },
+        { displayName: 1 },
+      )
+        .lean()
+        .exec()
+    : [];
+  const userMap = new Map(users.map((u) => [String(u._id), u.displayName]));
 
   const topGivers: LeaderboardEntry[] = topGiversRaw.map((item) => ({
     userId: item.giverId,
@@ -70,22 +74,22 @@ export const getUserStatsForSlackId = async (slackUserId: string) => {
 
 const buildUserStatsResponse = async (user: Awaited<ReturnType<typeof getOrCreateUser>>) => {
   const [given, received, balance] = await Promise.all([
-    prisma.kudosTransaction.aggregate({
-      _sum: { points: true },
-      where: { giverId: user.id, ...kudoTotalsWhere },
-    }),
-    prisma.kudosTransaction.aggregate({
-      _sum: { points: true },
-      where: { receiverId: user.id, ...kudoTotalsWhere },
-    }),
+    KudosTransactionModel.aggregate<{ points: number }>([
+      { $match: { giverId: asObjectId(user.id), ...kudoTotalsWhere } },
+      { $group: { _id: null, points: { $sum: "$points" } } },
+    ]),
+    KudosTransactionModel.aggregate<{ points: number }>([
+      { $match: { receiverId: asObjectId(user.id), ...kudoTotalsWhere } },
+      { $group: { _id: null, points: { $sum: "$points" } } },
+    ]),
     getOrCreateCurrentMonthBalance(user.id),
   ]);
 
   return {
     slackUserId: user.slackUserId,
     displayName: user.displayName,
-    totalGiven: given._sum.points ?? 0,
-    totalReceived: received._sum.points ?? 0,
+    totalGiven: given[0]?.points ?? 0,
+    totalReceived: received[0]?.points ?? 0,
     remainingBalance: balance.remainingPoints,
     userCategory: {
       id: user.userCategory.id,
@@ -101,38 +105,41 @@ const buildUserStatsResponse = async (user: Awaited<ReturnType<typeof getOrCreat
 export const getCurrentMonthStats = async () => {
   const { month, year } = getMonthYear();
   const [topGiversRaw, topReceiversRaw] = await Promise.all([
-    prisma.kudosTransaction.groupBy({
-      by: ["giverId"],
-      _sum: { points: true },
-      where: { month, year, ...kudoTotalsWhere },
-      orderBy: { _sum: { points: "desc" } },
-      take: 10,
-    }),
-    prisma.kudosTransaction.groupBy({
-      by: ["receiverId"],
-      _sum: { points: true },
-      where: { month, year, ...kudoTotalsWhere },
-      orderBy: { _sum: { points: "desc" } },
-      take: 10,
-    }),
+    KudosTransactionModel.aggregate<{ _id: unknown; points: number }>([
+      { $match: { month, year, ...kudoTotalsWhere } },
+      { $group: { _id: "$giverId", points: { $sum: "$points" } } },
+      { $sort: { points: -1 } },
+      { $limit: 10 },
+    ]),
+    KudosTransactionModel.aggregate<{ _id: unknown; points: number }>([
+      { $match: { month, year, ...kudoTotalsWhere } },
+      { $group: { _id: "$receiverId", points: { $sum: "$points" } } },
+      { $sort: { points: -1 } },
+      { $limit: 10 },
+    ]),
   ]);
-  return { topGiversRaw, topReceiversRaw };
+  return {
+    topGiversRaw: topGiversRaw.map((row) => ({ giverId: String(row._id), _sum: { points: row.points } })),
+    topReceiversRaw: topReceiversRaw.map((row) => ({
+      receiverId: String(row._id),
+      _sum: { points: row.points },
+    })),
+  };
 };
 
 export const getAuditLog = async (page = 1, pageSize = 25) => {
   const skip = (page - 1) * pageSize;
 
   const [items, total] = await Promise.all([
-    prisma.kudosTransaction.findMany({
-      orderBy: { createdAt: "desc" },
-      skip,
-      take: pageSize,
-      include: {
-        giver: { select: { slackUserId: true, displayName: true } },
-        receiver: { select: { slackUserId: true, displayName: true } },
-      },
-    }),
-    prisma.kudosTransaction.count(),
+    KudosTransactionModel.find({})
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(pageSize)
+      .populate("giverId", "slackUserId displayName")
+      .populate("receiverId", "slackUserId displayName")
+      .lean()
+      .exec(),
+    KudosTransactionModel.countDocuments({}),
   ]);
 
   return {
@@ -140,15 +147,21 @@ export const getAuditLog = async (page = 1, pageSize = 25) => {
     pageSize,
     total,
     items: items.map((item) => ({
-      id: item.id,
+      id: String(item._id),
       kind: item.kind,
       createdAt: item.createdAt,
       points: item.points,
       message: item.message,
       channelId: item.channelId,
       channelName: item.channelName,
-      giver: item.giver,
-      receiver: item.receiver,
+      giver: {
+        slackUserId: (item.giverId as unknown as { slackUserId: string }).slackUserId,
+        displayName: (item.giverId as unknown as { displayName: string }).displayName,
+      },
+      receiver: {
+        slackUserId: (item.receiverId as unknown as { slackUserId: string }).slackUserId,
+        displayName: (item.receiverId as unknown as { displayName: string }).displayName,
+      },
     })),
   };
 };
