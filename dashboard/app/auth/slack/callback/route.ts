@@ -40,6 +40,16 @@ type SessionRoleResponse = {
   role: "user" | "admin" | "super_admin";
 };
 
+const parseSuperAdminSlackIds = (): Set<string> => {
+  const raw = runtimeEnv("SUPER_ADMIN_SLACK_USER_IDS") ?? "";
+  return new Set(
+    raw
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean),
+  );
+};
+
 const safeRedirectPath = (candidate: string | undefined): string => {
   if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//")) {
     return "/leaderboard";
@@ -129,6 +139,15 @@ export async function GET(request: Request) {
     resolved = await resolveSessionRole(slackUserId, displayName);
   } catch {
     return failedAuthRedirect(request, "Unable to resolve role for this user.");
+  }
+
+  // Fallback safeguard: if this Slack user is configured as super admin in env,
+  // force the token payload role at issuance time.
+  if (parseSuperAdminSlackIds().has(resolved.slackUserId)) {
+    resolved = {
+      ...resolved,
+      role: "super_admin",
+    };
   }
 
   const publicOrigin = publicOriginFromRequest(request);
