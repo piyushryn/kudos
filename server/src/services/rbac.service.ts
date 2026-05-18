@@ -21,6 +21,21 @@ export const getOrCreateUserWithRole = async (
   displayName?: string,
 ): Promise<{ slackUserId: string; displayName: string; role: AppRole }> => {
   const user = await getOrCreateUser(slackUserId, displayName);
+
+  // If this user is a configured super admin but doesn't have the isAdmin flag set,
+  // update the database to reflect their super admin status
+  if (isSuperAdminSlackUserId(slackUserId) && !user.isAdmin) {
+    const updated = await userRepository.updateAdminFlagBySlackUserId(slackUserId, true);
+    if (!updated) {
+      throw new Error(`Failed to update super admin flag for user: ${slackUserId}`);
+    }
+    return {
+      slackUserId: updated.slackUserId,
+      displayName: updated.displayName,
+      role: resolveRole(updated.slackUserId, updated.isAdmin),
+    };
+  }
+
   return {
     slackUserId: user.slackUserId,
     displayName: user.displayName,
@@ -35,10 +50,22 @@ export const getExistingUserWithRole = async (
   if (!user) {
     return null;
   }
+
+  // If this user is a configured super admin but doesn't have the isAdmin flag set,
+  // update the database to reflect their super admin status
+  let userToReturn = user;
+  if (isSuperAdminSlackUserId(slackUserId) && !user.isAdmin) {
+    const updated = await userRepository.updateAdminFlagBySlackUserId(slackUserId, true);
+    if (!updated) {
+      throw new Error(`Failed to update super admin flag for user: ${slackUserId}`);
+    }
+    userToReturn = updated;
+  }
+
   return {
-    slackUserId: user.slackUserId,
-    displayName: user.displayName,
-    role: resolveRole(user.slackUserId, user.isAdmin),
+    slackUserId: userToReturn.slackUserId,
+    displayName: userToReturn.displayName,
+    role: resolveRole(userToReturn.slackUserId, userToReturn.isAdmin),
   };
 };
 
