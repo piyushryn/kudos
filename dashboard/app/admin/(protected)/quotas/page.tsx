@@ -5,8 +5,7 @@ import { ResetAllBalancesButton } from "@/components/reset-all-balances-button";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { BulkUserIdChipInput, type UserOption, UserIdInput } from "@/components/user-id-picker";
 import { runtimeEnv } from "@/lib/runtime-env";
 
 import { assignUserCategoryFormAction, bulkCategoryFormAction, resetUserBalanceFormAction } from "./actions";
@@ -19,6 +18,7 @@ type AdminUserCategory = {
 };
 
 type CategoryListResponse = { categories: AdminUserCategory[] } | { error: string };
+type UserListResponse = { users: UserOption[] } | { error: string };
 
 async function loadCategoryOptions(): Promise<CategoryListResponse> {
   const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
@@ -42,6 +42,53 @@ async function loadCategoryOptions(): Promise<CategoryListResponse> {
       monthlyGivingQuota,
     })),
   };
+}
+
+async function loadUserOptions(): Promise<UserListResponse> {
+  const base = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
+  const token = runtimeEnv("DASHBOARD_SERVICE_TOKEN");
+  if (!token) {
+    return { error: "DASHBOARD_SERVICE_TOKEN is not set." };
+  }
+
+  const users: UserOption[] = [];
+  let page = 1;
+  let total = 0;
+  const maxToLoad = 1000;
+
+  while (users.length < maxToLoad && (page === 1 || users.length < total)) {
+    const qs = new URLSearchParams({
+      page: String(page),
+      limit: "100",
+    });
+
+    const res = await fetch(`${base}/admin/users?${qs}`, {
+      headers: { "x-dashboard-service-token": token },
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      return { error: `Failed to load users (${res.status})` };
+    }
+
+    const json = (await res.json()) as {
+      users: Array<{ slackUserId: string; displayName: string }>;
+      total: number;
+    };
+
+    total = json.total;
+    users.push(
+      ...json.users.map((user) => ({
+        slackUserId: user.slackUserId,
+        displayName: user.displayName,
+      })),
+    );
+
+    page += 1;
+  }
+
+  const deduped = [...new Map(users.map((user) => [user.slackUserId, user])).values()];
+  return { users: deduped };
 }
 
 function CategorySelect({
@@ -83,8 +130,11 @@ export default async function AdminQuotasPage({
 }) {
   const sp = await searchParams;
   const catData = await loadCategoryOptions();
+  const userData = await loadUserOptions();
   const categories = "categories" in catData ? catData.categories : undefined;
+  const users = "users" in userData ? userData.users : [];
   const categoryLoadError = "error" in catData ? catData.error : undefined;
+  const userLoadError = "error" in userData ? userData.error : undefined;
   const categoryOptions = categories !== undefined && categories.length > 0 ? categories : null;
 
   return (
@@ -106,6 +156,7 @@ export default async function AdminQuotasPage({
         {sp.notice ? <Alert>{decodeURIComponent(sp.notice)}</Alert> : null}
         {sp.error ? <Alert variant="destructive">{decodeURIComponent(sp.error)}</Alert> : null}
         {categoryLoadError ? <Alert variant="destructive">{categoryLoadError}</Alert> : null}
+        {userLoadError ? <Alert variant="destructive">{userLoadError}</Alert> : null}
 
         <p className="text-sm text-slate-500">
           Category definitions live under{" "}
@@ -140,19 +191,25 @@ export default async function AdminQuotasPage({
               <CardContent className="space-y-5">
                 {categoryOptions ? (
                   <form action={assignUserCategoryFormAction} className="space-y-4">
-                    <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
-                      Slack User ID
-                      <Input name="slackUserId" type="text" required placeholder="U09ABCDEF12" />
-                    </label>
+                    <UserIdInput
+                      name="slackUserId"
+                      label="Slack User ID"
+                      required
+                      placeholder="Search by name or Slack ID"
+                      users={users}
+                    />
                     <CategorySelect categories={categoryOptions} />
                     <Button type="submit">Assign category</Button>
                   </form>
                 ) : null}
                 <form action={resetUserBalanceFormAction} className="space-y-4">
-                  <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
-                    Slack User ID (reset balance)
-                    <Input name="slackUserId" type="text" required placeholder="U09ABCDEF12" />
-                  </label>
+                  <UserIdInput
+                    name="slackUserId"
+                    label="Slack User ID (reset balance)"
+                    required
+                    placeholder="Search by name or Slack ID"
+                    users={users}
+                  />
                   <Button type="submit" variant="secondary">
                     Reset this user’s balance (current month → full quota)
                   </Button>
@@ -172,10 +229,7 @@ export default async function AdminQuotasPage({
               <CardContent>
                 {categoryOptions ? (
                   <form action={bulkCategoryFormAction} className="space-y-4">
-                    <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
-                      Slack User IDs
-                      <Textarea name="slackUserIds" rows={6} placeholder={"U09AAA\nU09BBB"} required />
-                    </label>
+                    <BulkUserIdChipInput name="slackUserIds" label="Slack User IDs" users={users} required />
                     <CategorySelect categories={categoryOptions} />
                     <Button type="submit">Apply category to listed users</Button>
                   </form>
