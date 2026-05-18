@@ -21,6 +21,19 @@ export const getMyStatsHandler = async (req: Request, res: Response): Promise<vo
   res.status(200).json(stats);
 };
 
+export const getMySessionHandler = async (req: Request, res: Response): Promise<void> => {
+  const auth = req.auth;
+  if (!auth) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  res.status(200).json({
+    slackUserId: auth.slackUserId,
+    displayName: auth.displayName,
+    role: auth.role,
+  });
+};
+
 export const postResolveSessionRoleHandler = async (req: Request, res: Response): Promise<void> => {
   const parsed = resolveSessionRoleBodySchema.safeParse(req.body);
   if (!parsed.success) {

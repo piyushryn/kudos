@@ -13,6 +13,28 @@ type UserSessionClaims = {
   v: number;
 };
 
+const parseSuperAdminSlackIds = (): Set<string> => {
+  const raw = runtimeEnv("SUPER_ADMIN_SLACK_USER_IDS") ?? "";
+  return new Set(
+    raw
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean),
+  );
+};
+
+export const isEnvSuperAdminSlackUserId = (slackUserId: string): boolean =>
+  parseSuperAdminSlackIds().has(slackUserId);
+
+export const getEffectiveSessionRole = (
+  claims: Pick<UserSessionClaims, "slackUserId" | "role">,
+): UserSessionClaims["role"] => {
+  if (isEnvSuperAdminSlackUserId(claims.slackUserId)) {
+    return "super_admin";
+  }
+  return claims.role;
+};
+
 const getUserSessionSecret = (): string => {
   const secret = runtimeEnv("USER_SESSION_SIGNING_SECRET");
   if (!secret || secret.length < 32) {
