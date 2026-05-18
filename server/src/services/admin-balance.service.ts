@@ -1,9 +1,53 @@
 import { config } from "../config";
+import { KudosEntryKind } from "../db/constants";
 import { asObjectId } from "../db/mappers";
-import { UserCategoryModel, UserGivingBalanceModel, UserModel } from "../db/models";
+import { KudosTransactionModel, UserCategoryModel, UserGivingBalanceModel, UserModel } from "../db/models";
 import { getMonthYear } from "../utils/date";
 import { effectiveQuotaForUser } from "../utils/balance-quota";
 import { AppError } from "../utils/errors";
+
+const recalculateCurrentMonthBalancesForUsers = async (userIds: string[]): Promise<void> => {
+  const normalizedIds = [...new Set(userIds)];
+  if (normalizedIds.length === 0) {
+    return;
+  }
+
+  const objectIds = normalizedIds.map((id) => asObjectId(id));
+  const { month, year } = getMonthYear();
+
+  const [users, spentRows] = await Promise.all([
+    UserModel.find({ _id: { $in: objectIds } }).populate("userCategoryId").lean().exec(),
+    KudosTransactionModel.aggregate<{ _id: unknown; spent: number }>([
+      {
+        $match: {
+          giverId: { $in: objectIds },
+          month,
+          year,
+          kind: KudosEntryKind.KUDO,
+          countsTowardTotals: true,
+        },
+      },
+      { $group: { _id: "$giverId", spent: { $sum: "$points" } } },
+    ]),
+  ]);
+
+  const spentByUserId = new Map(spentRows.map((row) => [String(row._id), row.spent]));
+
+  for (const user of users) {
+    const monthlyQuota = ((user.userCategoryId as unknown as { monthlyGivingQuota?: number | null })
+      .monthlyGivingQuota ??
+      null);
+    const quota = effectiveQuotaForUser({ userCategory: { monthlyGivingQuota: monthlyQuota } });
+    const spent = spentByUserId.get(String(user._id)) ?? 0;
+    const remainingPoints = Math.max(quota - spent, 0);
+
+    await UserGivingBalanceModel.findOneAndUpdate(
+      { userId: user._id, month, year },
+      { $set: { remainingPoints }, $setOnInsert: { userId: user._id, month, year } },
+      { upsert: true },
+    ).exec();
+  }
+};
 
 export const upsertCurrentMonthBalanceToQuota = async (userId: string): Promise<void> => {
   const { month, year } = getMonthYear();
@@ -42,6 +86,7 @@ export const setUserCategoryBySlackId = async (
     throw new AppError("Unknown user category.", 404);
   }
   await UserModel.findByIdAndUpdate(user._id, { userCategoryId: category._id }).exec();
+  await recalculateCurrentMonthBalancesForUsers([String(user._id)]);
 };
 
 export const bulkSetUserCategoryBySlackIds = async (
@@ -64,6 +109,9 @@ export const bulkSetUserCategoryBySlackIds = async (
     { slackUserId: { $in: normalized } },
     { $set: { userCategoryId: category._id } },
   ).exec();
+
+  const users = await UserModel.find({ slackUserId: { $in: normalized } }, { _id: 1 }).lean().exec();
+  await recalculateCurrentMonthBalancesForUsers(users.map((user) => String(user._id)));
 
   return { updated: result.modifiedCount };
 };
