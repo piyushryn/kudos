@@ -34,13 +34,15 @@ const resolveSlackUserIdToken = (raw: string, users: UserOption[]): string | nul
 function SuggestionList({
   users,
   query,
+  visible,
   onPick,
 }: {
   users: UserOption[];
   query: string;
+  visible: boolean;
   onPick: (user: UserOption) => void;
 }) {
-  if (!query.trim()) {
+  if (!visible || !query.trim()) {
     return null;
   }
 
@@ -60,6 +62,10 @@ function SuggestionList({
           key={user.slackUserId}
           type="button"
           className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-slate-50"
+          onMouseDown={(e) => {
+            // Keep input focused so blur handlers don't run before click.
+            e.preventDefault();
+          }}
           onClick={() => onPick(user)}
         >
           <span className="truncate">{user.displayName}</span>
@@ -84,6 +90,7 @@ export function UserIdInput({
   required?: boolean;
 }) {
   const [value, setValue] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const inputId = useId();
 
   const userMap = useMemo(
@@ -104,13 +111,20 @@ export function UserIdInput({
           placeholder={placeholder}
           value={value}
           autoComplete="off"
-          onChange={(e) => setValue(e.target.value)}
+          onFocus={() => setShowSuggestions(true)}
+          onBlur={() => setShowSuggestions(false)}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setShowSuggestions(true);
+          }}
         />
         <SuggestionList
           users={users}
           query={value}
+          visible={showSuggestions}
           onPick={(user) => {
             setValue(user.slackUserId);
+            setShowSuggestions(false);
           }}
         />
       </div>
@@ -136,6 +150,7 @@ export function BulkUserIdChipInput({
 }) {
   const [query, setQuery] = useState("");
   const [chips, setChips] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const userMap = useMemo(() => new Map(users.map((u) => [u.slackUserId, u.displayName])), [users]);
 
@@ -187,25 +202,33 @@ export function BulkUserIdChipInput({
             value={query}
             autoComplete="off"
             placeholder="Type a name or Slack ID, then press Enter"
-            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => setShowSuggestions(true)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setShowSuggestions(true);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === ",") {
                 e.preventDefault();
                 addFromQuery();
+                setShowSuggestions(false);
               }
             }}
             onBlur={() => {
               if (query.trim()) {
                 addFromQuery();
               }
+              setShowSuggestions(false);
             }}
           />
           <SuggestionList
             users={users}
             query={query}
+            visible={showSuggestions}
             onPick={(user) => {
               addToken(user.slackUserId);
               setQuery("");
+              setShowSuggestions(false);
             }}
           />
         </div>
