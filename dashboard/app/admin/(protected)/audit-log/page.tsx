@@ -27,8 +27,11 @@ const MONTH_NAMES = [
 type ArchiveOption = { month: number; year: number; archivedAt: string };
 
 const exactDateFormatter = new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "short",
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
   timeZoneName: "short",
 });
 
