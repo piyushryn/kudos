@@ -1,6 +1,7 @@
 import type { UsersListResponse } from "@slack/web-api/dist/types/response/UsersListResponse";
 
 import { slackClient } from "../slack/client";
+import { mapSlackApiErrorToAppError } from "../slack/error-mapper";
 import { AppError } from "../utils/errors";
 
 type SlackMember = NonNullable<UsersListResponse["members"]>[number];
@@ -41,9 +42,15 @@ export const resolveSlackUserIdFromHandle = async (handle: string): Promise<stri
   let cursor: string | undefined;
 
   for (let page = 0; page < 40; page += 1) {
-    const res = await slackClient.users.list(
-      cursor ? { limit: 200, cursor } : { limit: 200 },
-    );
+    let res;
+    try {
+      res = await slackClient.users.list(cursor ? { limit: 200, cursor } : { limit: 200 });
+    } catch (error) {
+      throw mapSlackApiErrorToAppError(
+        error,
+        "Could not look up Slack users. Check app permissions and try again.",
+      );
+    }
 
     if (!res.ok || !res.members) {
       break;

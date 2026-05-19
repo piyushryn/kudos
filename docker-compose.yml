@@ -9,15 +9,41 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+      - mongo_configdb:/data/configdb
+      - ./scripts/mongo-entrypoint.sh:/usr/local/bin/mongo-entrypoint.sh:ro
+    entrypoint: ["/usr/local/bin/mongo-entrypoint.sh"]
+    command:
+      [
+        "mongod",
+        "--replSet",
+        "rs0",
+        "--keyFile",
+        "/data/configdb/mongo-keyfile",
+        "--bind_ip_all",
+      ]
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "echo 'db.runCommand({ ping: 1 }).ok' | mongosh mongodb://${MONGO_ROOT_USERNAME:-kudos}:${MONGO_ROOT_PASSWORD:-kudos}@localhost:27017/admin --quiet",
+          "echo 'db.runCommand({ ping: 1 }).ok' | mongosh mongodb://${MONGO_ROOT_USERNAME:-kudos}:${MONGO_ROOT_PASSWORD:-kudos}@localhost:27017/admin?directConnection=true --quiet",
         ]
       interval: 5s
       timeout: 5s
-      retries: 20
+      retries: 30
+
+  mongo-init:
+    image: mongo:8
+    container_name: kudos-mongo-init
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-kudos}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-kudos}
+    volumes:
+      - ./scripts/mongo-init-replset.sh:/usr/local/bin/mongo-init-replset.sh:ro
+    entrypoint: ["/usr/local/bin/mongo-init-replset.sh"]
+    restart: "no"
 
   server:
     build:
@@ -26,10 +52,12 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
     environment:
       NODE_ENV: production
       PORT: 4000
-      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:-kudos}:${MONGO_ROOT_PASSWORD:-kudos}@mongo:27017/kudos?authSource=admin
+      MONGODB_URI: "mongodb://${MONGO_ROOT_USERNAME:-kudos}:${MONGO_ROOT_PASSWORD:-kudos}@mongo:27017/kudos?authSource=admin&replicaSet=rs0"
       SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
       SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
       DEFAULT_MONTHLY_BALANCE: ${DEFAULT_MONTHLY_BALANCE:-100}
@@ -83,3 +111,4 @@ services:
 
 volumes:
   mongo_data:
+  mongo_configdb:

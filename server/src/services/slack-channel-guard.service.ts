@@ -1,4 +1,5 @@
 import { slackClient } from "../slack/client";
+import { mapSlackApiErrorToAppError } from "../slack/error-mapper";
 import { AppError } from "../utils/errors";
 
 /**
@@ -21,7 +22,15 @@ export const assertKudosAllowedInChannel = async (
     );
   }
 
-  const info = await slackClient.conversations.info({ channel: channelId });
+  let info;
+  try {
+    info = await slackClient.conversations.info({ channel: channelId });
+  } catch (error) {
+    throw mapSlackApiErrorToAppError(
+      error,
+      "Could not verify the channel. Check that the bot is installed and has *conversations:read*.",
+    );
+  }
 
   if (!info.ok || !info.channel) {
     const detail =
