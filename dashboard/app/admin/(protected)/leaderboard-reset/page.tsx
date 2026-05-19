@@ -4,7 +4,7 @@ import { LeaderboardAdminToolbar } from "@/components/leaderboard-admin-toolbar"
 import { LeaderboardResetUserButton } from "@/components/leaderboard-reset-user-button";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { fetchAdminLeaderboard } from "@/lib/api";
+import { fetchAdminLeaderboard } from "@/lib/admin-api";
 
 export default async function AdminLeaderboardResetPage() {
   const leaderboard = await fetchAdminLeaderboard();

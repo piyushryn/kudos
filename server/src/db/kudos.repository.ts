@@ -8,7 +8,7 @@ export const kudosRepository = {
       _id: unknown;
       points: number;
     }>([
-      { $match: { kind: KudosEntryKind.KUDO, countsTowardTotals: true } },
+      { $match: { kind: KudosEntryKind.KUDO, countsTowardTotals: true, isArchived: false } },
       { $group: { _id: "$giverId", points: { $sum: "$points" } } },
       { $sort: { points: -1 } },
       { $limit: limit },
@@ -23,7 +23,7 @@ export const kudosRepository = {
       _id: unknown;
       points: number;
     }>([
-      { $match: { kind: KudosEntryKind.KUDO, countsTowardTotals: true } },
+      { $match: { kind: KudosEntryKind.KUDO, countsTowardTotals: true, isArchived: false } },
       { $group: { _id: "$receiverId", points: { $sum: "$points" } } },
       { $sort: { points: -1 } },
       { $limit: limit },

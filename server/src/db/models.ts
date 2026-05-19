@@ -58,6 +58,7 @@ const kudosTransactionSchema = new Schema(
       index: true,
     },
     countsTowardTotals: { type: Boolean, default: true, required: true, index: true },
+    isArchived: { type: Boolean, default: false, required: true, index: true },
     giverId: { type: Schema.Types.ObjectId, required: true, ref: "User", index: true },
     receiverId: { type: Schema.Types.ObjectId, required: true, ref: "User", index: true },
     points: { type: Number, required: true },
@@ -74,12 +75,40 @@ kudosTransactionSchema.index({ giverId: 1, month: 1, year: 1 });
 kudosTransactionSchema.index({ createdAt: 1 });
 kudosTransactionSchema.index({ channelId: 1 });
 kudosTransactionSchema.index({ kind: 1, countsTowardTotals: 1 });
+kudosTransactionSchema.index({ isArchived: 1, month: 1, year: 1 });
+kudosTransactionSchema.index({ isArchived: 1, createdAt: -1 });
+
+const archivedLeaderboardSchema = new Schema(
+  {
+    month: { type: Number, required: true },
+    year: { type: Number, required: true },
+    topGivers: [
+      {
+        userId: { type: Schema.Types.ObjectId, required: true, ref: "User" },
+        slackUserId: { type: String, required: true },
+        displayName: { type: String, required: true },
+        points: { type: Number, required: true },
+      },
+    ],
+    topReceivers: [
+      {
+        userId: { type: Schema.Types.ObjectId, required: true, ref: "User" },
+        slackUserId: { type: String, required: true },
+        displayName: { type: String, required: true },
+        points: { type: Number, required: true },
+      },
+    ],
+  },
+  { timestamps: { createdAt: "archivedAt", updatedAt: false }, versionKey: false },
+);
+archivedLeaderboardSchema.index({ year: 1, month: 1 }, { unique: true });
 
 type UserCategoryDoc = InferSchemaType<typeof userCategorySchema> & { _id: Types.ObjectId };
 type UserDoc = InferSchemaType<typeof userSchema> & { _id: Types.ObjectId };
 type UserGivingBalanceDoc = InferSchemaType<typeof userGivingBalanceSchema> & { _id: Types.ObjectId };
 type ReceiverDailyCapDoc = InferSchemaType<typeof receiverDailyCapSchema> & { _id: Types.ObjectId };
 type KudosTransactionDoc = InferSchemaType<typeof kudosTransactionSchema> & { _id: Types.ObjectId };
+type ArchivedLeaderboardDoc = InferSchemaType<typeof archivedLeaderboardSchema> & { _id: Types.ObjectId };
 
 const createModel = <T>(name: string, schema: Schema<T>): Model<T> =>
   (models[name] as Model<T> | undefined) ?? model<T>(name, schema);
@@ -97,4 +126,8 @@ export const ReceiverDailyCapModel = createModel<ReceiverDailyCapDoc>(
 export const KudosTransactionModel = createModel<KudosTransactionDoc>(
   "KudosTransaction",
   kudosTransactionSchema,
+);
+export const ArchivedLeaderboardModel = createModel<ArchivedLeaderboardDoc>(
+  "ArchivedLeaderboard",
+  archivedLeaderboardSchema,
 );

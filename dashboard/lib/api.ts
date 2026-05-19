@@ -1,15 +1,11 @@
-import { getBackendCookieHeaders } from "@/lib/backend-auth";
-import { runtimeEnv } from "@/lib/runtime-env";
-import { requireAdminSession } from "@/lib/require-admin-session";
-
-const apiBaseUrl = runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000";
+// For client components, we use relative paths which resolve to the current origin
+// For SSR, the proxy will route to the correct backend
+const apiBaseUrl = "";
 
 async function request<T>(path: string, headers?: HeadersInit): Promise<T> {
-  const cookieHeaders = await getBackendCookieHeaders();
   const response = await fetch(`${apiBaseUrl}${path}`, {
     headers: {
       "Content-Type": "application/json",
-      ...cookieHeaders,
       ...(headers ?? {}),
     },
     cache: "no-store",
@@ -54,12 +50,10 @@ export async function requestAdminJsonWithInit<T>(
   path: string,
   init: RequestInit,
 ): Promise<T> {
-  const cookieHeaders = await getBackendCookieHeaders();
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      ...cookieHeaders,
       ...(init.headers ?? {}),
     },
     cache: "no-store",
@@ -84,12 +78,57 @@ export async function requestAdminJsonWithInit<T>(
   return body as T;
 }
 
+export const fetchLeaderboard = () => request<LeaderboardResponse>("/public/leaderboard");
+
+export type ArchivedLeaderboardResponse = LeaderboardResponse & {
+  month: number;
+  year: number;
+  archivedAt: string;
+};
+
+export const fetchArchivedLeaderboard = (month: number, year: number) =>
+  request<ArchivedLeaderboardResponse>(`/public/leaderboard/archived?month=${month}&year=${year}`);
+
+export type ArchivedLeaderboardListItem = {
+  month: number;
+  year: number;
+  archivedAt: string;
+};
+
+// This uses the public admin endpoint (no auth required, but data is admin-focused)
+// Can be called from client components safely since it doesn't use next/headers
+async function fetchFromPublic<T>(path: string): Promise<T> {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${path}: ${response.status}`);
+  }
+
+  return response.json() as Promise<T>;
+}
+
+// Public endpoint for listing archived leaderboards (no auth required)
+export async function listArchivedLeaderboards(): Promise<ArchivedLeaderboardListItem[]> {
+  const data = await fetchFromPublic<{ archives: ArchivedLeaderboardListItem[] }>("/admin/leaderboard/archived");
+  return data.archives;
+}
+
+export const fetchMyUserStats = () => request<UserStatsResponse>("/user/me/stats");
+
 export type AuditLogEntryKind = "KUDO" | "ADMIN_RESET_USER" | "ADMIN_RESET_ALL";
 
 export type AuditLogResponse = {
   page: number;
   pageSize: number;
   total: number;
+  isArchived: boolean;
+  month?: number;
+  year?: number;
   items: Array<{
     id: string;
     kind: AuditLogEntryKind;
@@ -98,22 +137,28 @@ export type AuditLogResponse = {
     message: string;
     channelId: string | null;
     channelName: string | null;
+    isArchived: boolean;
     giver: { slackUserId: string; displayName: string };
     receiver: { slackUserId: string; displayName: string };
   }>;
 };
 
-export const fetchLeaderboard = () => request<LeaderboardResponse>("/public/leaderboard");
-export const fetchAdminLeaderboard = async () => {
-  await requireAdminSession("/admin/leaderboard-reset");
-  return request<AdminLeaderboardResponse>("/admin/leaderboard", {
-  });
+export type AuditLogQueryParams = {
+  page?: number;
+  pageSize?: number;
+  showArchived?: boolean;
+  month?: number;
+  year?: number;
 };
 
-export const fetchMyUserStats = () => request<UserStatsResponse>("/user/me/stats");
-
-export const fetchAuditLog = async (page = 1, pageSize = 50) => {
-  await requireAdminSession("/admin/audit-log");
-  return request<AuditLogResponse>(`/admin/audit-log?page=${page}&pageSize=${pageSize}`, {
-  });
-};
+/** Client-safe: sends browser session cookie; called from client components. */
+export async function fetchAuditLogClient(params: AuditLogQueryParams = {}): Promise<AuditLogResponse> {
+  const sp = new URLSearchParams();
+  if (params.page) sp.set("page", String(params.page));
+  if (params.pageSize) sp.set("pageSize", String(params.pageSize));
+  if (params.showArchived) sp.set("showArchived", "true");
+  if (params.month !== undefined) sp.set("month", String(params.month));
+  if (params.year !== undefined) sp.set("year", String(params.year));
+  const qs = sp.toString();
+  return request<AuditLogResponse>(`/admin/audit-log${qs ? `?${qs}` : ""}`);
+}

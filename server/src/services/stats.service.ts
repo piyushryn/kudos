@@ -127,11 +127,29 @@ export const getCurrentMonthStats = async () => {
   };
 };
 
-export const getAuditLog = async (page = 1, pageSize = 25) => {
+export type AuditLogFilters = {
+  /** When true, return archived transactions for the given month/year. Default: false (active only). */
+  isArchived?: boolean;
+  /** Required when isArchived=true. */
+  month?: number;
+  /** Required when isArchived=true. */
+  year?: number;
+};
+
+export const getAuditLog = async (page = 1, pageSize = 25, filters: AuditLogFilters = {}) => {
   const skip = (page - 1) * pageSize;
 
+  const where: Record<string, unknown> = {
+    isArchived: filters.isArchived === true ? true : false,
+  };
+
+  if (filters.isArchived && filters.month !== undefined && filters.year !== undefined) {
+    where.month = filters.month;
+    where.year = filters.year;
+  }
+
   const [items, total] = await Promise.all([
-    KudosTransactionModel.find({})
+    KudosTransactionModel.find(where)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(pageSize)
@@ -139,13 +157,16 @@ export const getAuditLog = async (page = 1, pageSize = 25) => {
       .populate("receiverId", "slackUserId displayName")
       .lean()
       .exec(),
-    KudosTransactionModel.countDocuments({}),
+    KudosTransactionModel.countDocuments(where),
   ]);
 
   return {
     page,
     pageSize,
     total,
+    isArchived: filters.isArchived === true,
+    month: filters.month,
+    year: filters.year,
     items: items.map((item) => ({
       id: String(item._id),
       kind: item.kind,
@@ -154,6 +175,7 @@ export const getAuditLog = async (page = 1, pageSize = 25) => {
       message: item.message,
       channelId: item.channelId,
       channelName: item.channelName,
+      isArchived: item.isArchived,
       giver: {
         slackUserId: (item.giverId as unknown as { slackUserId: string }).slackUserId,
         displayName: (item.giverId as unknown as { displayName: string }).displayName,

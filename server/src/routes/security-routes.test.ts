@@ -91,6 +91,9 @@ describe("security route boundaries", () => {
       page: 1,
       pageSize: 25,
       total: 0,
+      isArchived: false,
+      month: undefined,
+      year: undefined,
       items: [],
     });
 

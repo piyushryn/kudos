@@ -3,6 +3,7 @@ import { Router } from "express";
 import {
   getAdminLeaderboardHandler,
   getAuditLogHandler,
+  listArchivedLeaderboardsHandler,
 } from "../controllers/api.controller";
 import {
   listRoleManagedUsersHandler,
@@ -32,6 +33,7 @@ export const adminRouter = Router();
 adminRouter.use(requireRbacAuth(["admin", "super_admin"]));
 adminRouter.get("/audit-log", asyncHandler(getAuditLogHandler));
 adminRouter.get("/leaderboard", asyncHandler(getAdminLeaderboardHandler));
+adminRouter.get("/leaderboard/archived", asyncHandler(listArchivedLeaderboardsHandler));
 adminRouter.post("/monthly-reset", asyncHandler(runMonthlyResetHandler));
 
 adminRouter.get("/user-categories", asyncHandler(listUserCategoriesHandler));
