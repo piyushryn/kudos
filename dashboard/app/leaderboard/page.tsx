@@ -96,6 +96,8 @@ export default function LeaderboardPage() {
     ? `(Archived: ${getMonthName(selectedMonth!)} ${selectedYear})`
     : "(Current Month)";
 
+  const sortedArchives = [...archives].sort((a, b) => b.year - a.year || b.month - a.month);
+
   return (
     <>
       <PageHeader
@@ -106,36 +108,6 @@ export default function LeaderboardPage() {
             : "Top givers and receivers by total kudos points."
         }
       />
-
-      {/* Month/Year Navigation */}
-      <div className="mb-6 flex flex-col gap-4">
-        {isArchived && (
-          <Button onClick={handleBackToCurrent} variant="outline" className="w-fit">
-            ← Back to Current Month
-          </Button>
-        )}
-
-        {archives.length > 0 && (
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <h3 className="mb-3 text-sm font-semibold text-slate-700">View Historical Leaderboards</h3>
-            <div className="flex flex-wrap gap-2">
-              {archives.map((archive) => (
-                <Button
-                  key={`${archive.year}-${archive.month}`}
-                  onClick={() => handleSelectArchive(archive.month, archive.year)}
-                  variant={
-                    selectedMonth === archive.month && selectedYear === archive.year ? "default" : "outline"
-                  }
-                  size="sm"
-                  className="text-xs"
-                >
-                  {getMonthName(archive.month)} {archive.year}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
 
       {loading ? (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center text-slate-600">
@@ -196,6 +168,37 @@ export default function LeaderboardPage() {
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center text-slate-600">
           No leaderboard data available
         </div>
+      )}
+
+      {sortedArchives.length > 0 && (
+        <Card className="mt-6 border-slate-200 bg-white">
+          <div className="border-b border-slate-200 px-4 py-3">
+            <h3 className="text-sm font-semibold text-slate-800">Historical leaderboards</h3>
+            <p className="text-xs text-slate-500">Select a month. This list scrolls as history grows.</p>
+          </div>
+          <div className="space-y-3 p-4">
+            {isArchived && (
+              <Button onClick={handleBackToCurrent} variant="outline" className="w-fit">
+                Back to Current Month
+              </Button>
+            )}
+            <div className="max-h-52 overflow-y-auto pr-1">
+              <div className="flex flex-wrap gap-2">
+                {sortedArchives.map((archive) => (
+                  <Button
+                    key={`${archive.year}-${archive.month}`}
+                    onClick={() => handleSelectArchive(archive.month, archive.year)}
+                    variant={selectedMonth === archive.month && selectedYear === archive.year ? "default" : "outline"}
+                    size="sm"
+                    className="text-xs"
+                  >
+                    {getMonthName(archive.month)} {archive.year}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Card>
       )}
     </>
   );

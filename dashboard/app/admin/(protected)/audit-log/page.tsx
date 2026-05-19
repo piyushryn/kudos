@@ -26,6 +26,35 @@ const MONTH_NAMES = [
 
 type ArchiveOption = { month: number; year: number; archivedAt: string };
 
+const exactDateFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZoneName: "short",
+});
+
+const relativeDateFormatter = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+
+const formatAuditTimestamp = (timestamp: string): { label: string; exact: string } => {
+  const date = new Date(timestamp);
+  const exact = exactDateFormatter.format(date);
+  const diffMs = date.getTime() - Date.now();
+  const absSeconds = Math.abs(diffMs) / 1000;
+
+  if (absSeconds > 24 * 60 * 60) {
+    return { label: exact, exact };
+  }
+
+  if (absSeconds < 60) {
+    return { label: relativeDateFormatter.format(Math.round(diffMs / 1000), "second"), exact };
+  }
+
+  if (absSeconds < 60 * 60) {
+    return { label: relativeDateFormatter.format(Math.round(diffMs / (60 * 1000)), "minute"), exact };
+  }
+
+  return { label: relativeDateFormatter.format(Math.round(diffMs / (60 * 60 * 1000)), "hour"), exact };
+};
+
 export default function AuditLogPage() {
   const [data, setData] = useState<AuditLogResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,32 +124,6 @@ export default function AuditLogPage() {
           </Button>
         </div>
 
-        {/* Archived month picker */}
-        {showArchived && (
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            {archives.length === 0 ? (
-              <p className="text-sm text-slate-500">No archived months available yet.</p>
-            ) : (
-              <>
-                <p className="mb-3 text-sm font-medium text-slate-700">Select an archived month:</p>
-                <div className="flex flex-wrap gap-2">
-                  {archives.map((a) => (
-                    <Button
-                      key={`${a.year}-${a.month}`}
-                      size="sm"
-                      variant={selectedMonth === a.month && selectedYear === a.year ? "default" : "outline"}
-                      className="text-xs"
-                      onClick={() => handleSelectArchiveMonth(a.month, a.year)}
-                    >
-                      {MONTH_NAMES[a.month - 1]} {a.year}
-                    </Button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
         {/* Context banner */}
         {data && (
           <p className="text-sm text-slate-500">
@@ -145,7 +148,7 @@ export default function AuditLogPage() {
           </div>
         ) : !data || (showArchived && !selectedMonth) ? (
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
-            {showArchived ? "Select a month above to view its archived log." : "No data available."}
+            {showArchived ? "Select a month below to view its archived log." : "No data available."}
           </div>
         ) : (
           <Card className="overflow-x-auto">
@@ -169,7 +172,11 @@ export default function AuditLogPage() {
                       key={item.id}
                       className={!isKudo ? "bg-slate-50 text-slate-700 hover:bg-slate-50" : undefined}
                     >
-                      <TableCell>{new Date(item.createdAt).toLocaleString()}</TableCell>
+                      <TableCell>
+                        <span title={formatAuditTimestamp(item.createdAt).exact}>
+                          {formatAuditTimestamp(item.createdAt).label}
+                        </span>
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant="default"
@@ -188,6 +195,38 @@ export default function AuditLogPage() {
                 })}
               </TableBody>
             </Table>
+          </Card>
+        )}
+
+        {showArchived && (
+          <Card className="border-slate-200 bg-white">
+            <div className="border-b border-slate-200 px-4 py-3">
+              <p className="text-sm font-medium text-slate-800">Historical audit logs</p>
+              <p className="text-xs text-slate-500">Select a month. This list scrolls as archives grow.</p>
+            </div>
+            <div className="p-4">
+              {archives.length === 0 ? (
+                <p className="text-sm text-slate-500">No archived months available yet.</p>
+              ) : (
+                <div className="max-h-52 overflow-y-auto pr-1">
+                  <div className="flex flex-wrap gap-2">
+                    {[...archives]
+                      .sort((a, b) => b.year - a.year || b.month - a.month)
+                      .map((a) => (
+                        <Button
+                          key={`${a.year}-${a.month}`}
+                          size="sm"
+                          variant={selectedMonth === a.month && selectedYear === a.year ? "default" : "outline"}
+                          className="text-xs"
+                          onClick={() => handleSelectArchiveMonth(a.month, a.year)}
+                        >
+                          {MONTH_NAMES[a.month - 1]} {a.year}
+                        </Button>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </Card>
         )}
       </div>
