@@ -18,7 +18,8 @@ export function LeaderboardResetBySlackForm() {
       onSubmit={(e) => {
         e.preventDefault();
         setError("");
-        const fd = new FormData(e.currentTarget);
+        const form = e.currentTarget;
+        const fd = new FormData(form);
         const slackUserId = String(fd.get("slackUserId") ?? "").trim();
         if (
           !window.confirm(
@@ -33,13 +34,13 @@ export function LeaderboardResetBySlackForm() {
             setError(result.error);
             return;
           }
-          e.currentTarget.reset();
+          form.reset();
           router.refresh();
         });
       }}
     >
-      <label className="flex w-full flex-col gap-1.5 text-sm font-medium text-slate-700">
-        Slack User ID (reset scores)
+      <label className="flex w-full flex-col gap-1.5 text-sm font-medium text-ink-700">
+        Slack User ID
         <Input
           name="slackUserId"
           type="text"
@@ -47,12 +48,13 @@ export function LeaderboardResetBySlackForm() {
           autoComplete="off"
           required
           disabled={pending}
+          className="bg-card font-mono"
         />
       </label>
       <Button type="submit" variant="destructive" disabled={pending}>
         {pending ? "Resetting…" : "Reset user by Slack ID"}
       </Button>
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm text-coral-700">{error}</p> : null}
     </form>
   );
 }

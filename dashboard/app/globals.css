@@ -1,13 +1,53 @@
 @import "tailwindcss";
 
+@theme {
+  --color-paper: #f6f3ec;
+  --color-paper-2: #efebe0;
+  --color-card: #ffffff;
+
+  --color-ink-100: #efece3;
+  --color-ink-200: #e5e1d7;
+  --color-ink-300: #c9c5ba;
+  --color-ink-400: #908e87;
+  --color-ink-500: #6e6c66;
+  --color-ink-600: #565550;
+  --color-ink-700: #3a3935;
+  --color-ink-800: #25241f;
+  --color-ink-900: #161614;
+
+  --color-leaf-50: #eef7f1;
+  --color-leaf-100: #ddf0e3;
+  --color-leaf-200: #b7e0c4;
+  --color-leaf-400: #4eb07f;
+  --color-leaf-500: #2b9b65;
+  --color-leaf-600: #1f8253;
+  --color-leaf-700: #15663e;
+  --color-leaf-800: #0f4a2d;
+  --color-leaf-900: #0b331f;
+
+  --color-coral-100: #fae2d8;
+  --color-coral-200: #f5c5b0;
+  --color-coral-500: #e2664a;
+  --color-coral-600: #c24e33;
+  --color-coral-700: #9c3a22;
+
+  --color-violet-100: #e5e0f8;
+  --color-violet-500: #6b5bd2;
+  --color-violet-700: #4b3ea0;
+
+  --font-display: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-dm-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
 @layer base {
   * {
-    @apply border-slate-200;
+    border-color: var(--color-ink-200);
   }
 
   html,
   body {
-    @apply min-h-full;
+    min-height: 100%;
   }
 
   html {
@@ -15,15 +55,40 @@
   }
 
   body {
-    @apply bg-slate-100 text-slate-900 antialiased;
-    font-family: var(--font-dm-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--color-paper);
+    color: var(--color-ink-900);
+    font-family: var(--font-sans);
     font-size: 15px;
     line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   code {
-    font-family: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-      "Courier New", monospace;
-    @apply rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[0.84em];
+    font-family: var(--font-mono);
+    background: var(--color-ink-100);
+    border: 1px solid var(--color-ink-200);
+    color: var(--color-ink-800);
+    padding: 0.05em 0.45em;
+    border-radius: 0.3em;
+    font-size: 0.84em;
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-leaf-200), transparent 30%);
+    color: var(--color-ink-900);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--color-ink-300);
+    border-radius: 9999px;
   }
 }

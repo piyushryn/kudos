@@ -19,7 +19,9 @@ export function DeleteCategoryButton({ categoryId }: Props) {
       }}
     >
       <input type="hidden" name="categoryId" value={categoryId} />
-      <Button type="submit" variant="destructive">Delete</Button>
+      <Button type="submit" variant="destructive" size="sm">
+        Delete
+      </Button>
     </form>
   );
 }

@@ -34,11 +34,11 @@ export function LeaderboardResetAllButton() {
   };
 
   return (
-    <div className="flex w-full max-w-[600px] flex-col items-start gap-1.5">
+    <div className="flex w-full max-w-[600px] flex-col items-start gap-2">
       <Button type="button" variant="destructive" onClick={onClick} disabled={pending}>
         {pending ? "Resetting…" : "Reset entire leaderboard"}
       </Button>
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm text-coral-700">{error}</p> : null}
     </div>
   );
 }

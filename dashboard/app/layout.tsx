@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Sans, JetBrains_Mono } from "next/font/google";
+import { DM_Sans, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 
 import { AppShell } from "@/components/app-shell";
 
@@ -17,9 +17,16 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "500"],
 });
 
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  variable: "--font-instrument-serif",
+  weight: "400",
+  style: ["normal", "italic"],
+});
+
 export const metadata: Metadata = {
-  title: "Kudos Dashboard",
-  description: "Internal Slack Kudos analytics dashboard",
+  title: "Kudos",
+  description: "Celebrate the people doing great work, every month.",
 };
 
 export default function RootLayout({
@@ -28,7 +35,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${jetbrainsMono.variable}`}>
+    <html
+      lang="en"
+      className={`${dmSans.variable} ${jetbrainsMono.variable} ${instrumentSerif.variable}`}
+    >
       <body>
         <AppShell>{children}</AppShell>
       </body>

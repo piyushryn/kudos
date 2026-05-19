@@ -47,7 +47,7 @@ export function LeaderboardResetUserButton({ userId, displayName }: Props) {
       >
         {pending ? "…" : "Reset"}
       </Button>
-      {error ? <span className="text-xs text-red-700">{error}</span> : null}
+      {error ? <span className="text-xs text-coral-700">{error}</span> : null}
     </span>
   );
 }

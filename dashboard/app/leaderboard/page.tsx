@@ -1,200 +1,383 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
+
+import { Monogram } from "@/components/monogram";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { fetchLeaderboard, fetchArchivedLeaderboard, listArchivedLeaderboards } from "@/lib/api";
+import {
+  fetchArchivedLeaderboard,
+  fetchLeaderboard,
+  listArchivedLeaderboards,
+} from "@/lib/api";
+import { cn } from "@/lib/utils";
 
-type LeaderboardData = {
-  topGivers: Array<{ displayName: string; points: number }>;
-  topReceivers: Array<{ displayName: string; points: number }>;
-};
+type Entry = { displayName: string; points: number };
+type Snapshot = { topGivers: Entry[]; topReceivers: Entry[] };
+type ArchiveItem = { month: number; year: number; archivedAt: string };
+type ArchiveSnapshot = Snapshot & ArchiveItem;
 
-type ArchivedLeaderboardData = LeaderboardData & {
-  month: number;
-  year: number;
-  archivedAt: string;
-};
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
-const getMonthName = (month: number): string => {
-  return new Date(2000, month - 1).toLocaleString("default", { month: "long" });
-};
+function PodiumCard({
+  entry,
+  rank,
+  accent,
+}: {
+  entry: Entry | null;
+  rank: 1 | 2 | 3;
+  accent: "give" | "receive";
+}) {
+  const isFirst = rank === 1;
+  const height = isFirst
+    ? "min-h-[260px]"
+    : rank === 2
+      ? "min-h-[220px]"
+      : "min-h-[190px]";
+  const surface = isFirst
+    ? accent === "give"
+      ? "bg-leaf-500 border-leaf-600 text-paper"
+      : "bg-coral-500 border-coral-600 text-paper"
+    : "bg-card border-ink-200 text-ink-900";
+  const rankTone = isFirst
+    ? "text-paper/70"
+    : accent === "give"
+      ? "text-leaf-700"
+      : "text-coral-700";
+
+  if (!entry) {
+    return (
+      <div
+        className={cn(
+          "flex flex-col items-center justify-between rounded-2xl border border-dashed border-ink-200 px-4 py-5",
+          height,
+        )}
+      >
+        <span className="font-display text-2xl italic text-ink-300">
+          {String(rank).padStart(2, "0")}
+        </span>
+        <span className="font-display text-3xl italic text-ink-300">open</span>
+        <span className="text-[10px] uppercase tracking-[0.2em] text-ink-300">
+          awaiting
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col items-center justify-between rounded-2xl border px-4 py-5 shadow-[0_1px_0_rgba(22,22,20,0.04)]",
+        height,
+        surface,
+      )}
+    >
+      <span className={cn("font-display text-2xl italic", rankTone)}>
+        {String(rank).padStart(2, "0")}
+      </span>
+      <div className="flex flex-col items-center gap-3">
+        <Monogram name={entry.displayName} size="lg" />
+        <span
+          className={cn(
+            "max-w-[14ch] truncate text-center text-sm font-medium",
+            isFirst ? "text-paper" : "text-ink-900",
+          )}
+        >
+          {entry.displayName}
+        </span>
+      </div>
+      <div className="flex items-baseline gap-1.5">
+        <span
+          className={cn(
+            "font-display text-5xl italic leading-none tabular-nums",
+            isFirst ? "text-paper" : "text-ink-900",
+          )}
+        >
+          {entry.points}
+        </span>
+        <span
+          className={cn(
+            "text-[10px] uppercase tracking-[0.2em]",
+            isFirst ? "text-paper/70" : "text-ink-400",
+          )}
+        >
+          pts
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Podium({
+  title,
+  entries,
+  accent,
+}: {
+  title: string;
+  entries: Entry[];
+  accent: "give" | "receive";
+}) {
+  const [first, second, third] = [
+    entries[0] ?? null,
+    entries[1] ?? null,
+    entries[2] ?? null,
+  ];
+  return (
+    <section className="space-y-5">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="font-display text-4xl italic text-ink-900">{title}</h2>
+        <span className="text-[10px] uppercase tracking-[0.22em] text-ink-400">
+          top three
+        </span>
+      </div>
+      <div className="grid grid-cols-3 items-end gap-3">
+        <div className="pt-8">
+          <PodiumCard entry={second} rank={2} accent={accent} />
+        </div>
+        <div>
+          <PodiumCard entry={first} rank={1} accent={accent} />
+        </div>
+        <div className="pt-12">
+          <PodiumCard entry={third} rank={3} accent={accent} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RankList({
+  title,
+  entries,
+  accent,
+}: {
+  title: string;
+  entries: Entry[];
+  accent: "give" | "receive";
+}) {
+  const rest = entries.slice(3);
+  if (rest.length === 0) return null;
+  const tint = accent === "give" ? "text-leaf-700" : "text-coral-700";
+  return (
+    <section className="space-y-3">
+      <h3 className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-ink-400">
+        {title}
+      </h3>
+      <ol className="overflow-hidden rounded-xl border border-ink-200 bg-card">
+        {rest.map((e, i) => (
+          <li
+            key={`${e.displayName}-${i}`}
+            className="flex items-center gap-4 border-b border-ink-200 px-4 py-3 last:border-b-0 transition-colors hover:bg-paper-2/70"
+          >
+            <span className="w-7 font-mono text-xs text-ink-400 tabular-nums">
+              {String(i + 4).padStart(2, "0")}
+            </span>
+            <Monogram name={e.displayName} size="sm" />
+            <span className="flex-1 truncate text-sm text-ink-900">
+              {e.displayName}
+            </span>
+            <span
+              className={cn(
+                "font-display text-xl italic tabular-nums",
+                tint,
+              )}
+            >
+              {e.points}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
 
 export default function LeaderboardPage() {
-  const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null);
+  const [current, setCurrent] = useState<Snapshot | null>(null);
+  const [archived, setArchived] = useState<ArchiveSnapshot | null>(null);
+  const [archives, setArchives] = useState<ArchiveItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [archives, setArchives] = useState<Array<{ month: number; year: number; archivedAt: string }>>([]);
-  const [archivedLeaderboard, setArchivedLeaderboard] = useState<ArchivedLeaderboardData | null>(null);
+  const [archiveOpen, setArchiveOpen] = useState(false);
 
-  // Fetch current leaderboard on mount
+  // Initial load: current leaderboard + list of archives.
   useEffect(() => {
-    const loadCurrentLeaderboard = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchLeaderboard();
-        setLeaderboard(data);
-        setSelectedMonth(null);
-        setSelectedYear(null);
-        setArchivedLeaderboard(null);
-      } catch (error) {
-        console.error("Failed to fetch leaderboard", error);
-      } finally {
-        setLoading(false);
-      }
+    let cancelled = false;
+    setLoading(true);
+    fetchLeaderboard()
+      .then((data) => {
+        if (!cancelled) setCurrent(data);
+      })
+      .catch(() => {
+        if (!cancelled) setCurrent({ topGivers: [], topReceivers: [] });
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    listArchivedLeaderboards()
+      .then((list) => {
+        if (!cancelled) setArchives(list);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
     };
-
-    const loadArchives = async () => {
-      try {
-        const archivesList = await listArchivedLeaderboards();
-        setArchives(archivesList);
-      } catch (error) {
-        console.error("Failed to fetch archived leaderboards", error);
-      }
-    };
-
-    loadCurrentLeaderboard();
-    loadArchives();
   }, []);
 
-  const handleSelectArchive = async (month: number, year: number) => {
+  const isArchived = archived !== null;
+  const data = archived ?? current;
+  const now = new Date();
+  const monthLabel = isArchived
+    ? `${MONTHS[archived.month - 1]} ${archived.year}`
+    : `${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+
+  const eyebrow = isArchived
+    ? `Archive · ${monthLabel}`
+    : `Leaderboard · ${monthLabel}`;
+  const title = isArchived ? "Looking back." : "Hats off.";
+  const subtitle = isArchived
+    ? "Final tally for this month — nothing changes from here."
+    : "Top givers and receivers this month, refreshed live.";
+
+  const handlePick = async (month: number, year: number) => {
+    setLoading(true);
     try {
-      setLoading(true);
       const data = await fetchArchivedLeaderboard(month, year);
-      setArchivedLeaderboard(data);
-      setSelectedMonth(month);
-      setSelectedYear(year);
-    } catch (error) {
-      console.error("Failed to fetch archived leaderboard", error);
+      setArchived(data);
+    } catch (err) {
+      console.error("Failed to fetch archived leaderboard", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleBackToCurrent = () => {
-    setSelectedMonth(null);
-    setSelectedYear(null);
-    setArchivedLeaderboard(null);
-    setLeaderboard(
-      leaderboard || {
-        topGivers: [],
-        topReceivers: [],
-      },
-    );
-  };
+  const handleBack = () => setArchived(null);
 
-  const displayData = archivedLeaderboard || leaderboard;
-  const isArchived = archivedLeaderboard !== null;
-  const titleSuffix = isArchived
-    ? `(Archived: ${getMonthName(selectedMonth!)} ${selectedYear})`
-    : "(Current Month)";
-
-  const sortedArchives = [...archives].sort((a, b) => b.year - a.year || b.month - a.month);
+  const sortedArchives = useMemo(
+    () => [...archives].sort((a, b) => b.year - a.year || b.month - a.month),
+    [archives],
+  );
 
   return (
-    <>
+    <div className="space-y-14">
       <PageHeader
-        title={`Leaderboard ${titleSuffix}`}
-        description={
-          isArchived
-            ? "Historical leaderboard snapshot for this month."
-            : "Top givers and receivers by total kudos points."
+        size="lg"
+        eyebrow={eyebrow}
+        title={title}
+        description={subtitle}
+        actions={
+          isArchived ? (
+            <Button variant="outline" size="sm" onClick={handleBack}>
+              ← Back to this month
+            </Button>
+          ) : null
         }
       />
 
-      {loading ? (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center text-slate-600">
-          Loading leaderboard...
+      {loading || !data ? (
+        <div className="rounded-2xl border border-ink-200 bg-card p-12 text-center text-sm text-ink-500">
+          Loading…
         </div>
-      ) : displayData ? (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <section>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xs uppercase tracking-wider text-slate-500">Top givers</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {displayData.topGivers.length > 0 ? (
-                  <ol className="mt-1 divide-y divide-slate-200">
-                    {displayData.topGivers.map((entry, index) => (
-                      <li
-                        key={`${entry.displayName}-${index}`}
-                        className="flex items-baseline justify-between gap-4 py-2.5 text-sm"
-                      >
-                        <span>{entry.displayName}</span>
-                        <strong className="font-semibold text-emerald-700">{entry.points}</strong>
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p className="text-sm text-slate-500">No data available</p>
-                )}
-              </CardContent>
-            </Card>
-          </section>
-          <section>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xs uppercase tracking-wider text-slate-500">Top receivers</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {displayData.topReceivers.length > 0 ? (
-                  <ol className="mt-1 divide-y divide-slate-200">
-                    {displayData.topReceivers.map((entry, index) => (
-                      <li
-                        key={`${entry.displayName}-${index}`}
-                        className="flex items-baseline justify-between gap-4 py-2.5 text-sm"
-                      >
-                        <span>{entry.displayName}</span>
-                        <strong className="font-semibold text-emerald-700">{entry.points}</strong>
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p className="text-sm text-slate-500">No data available</p>
-                )}
-              </CardContent>
-            </Card>
-          </section>
+      ) : data.topGivers.length === 0 && data.topReceivers.length === 0 ? (
+        <div className="rounded-2xl border border-ink-200 bg-card p-12 text-center">
+          <p className="font-display text-3xl italic text-ink-900">
+            Quiet on the floor.
+          </p>
+          <p className="mt-2 text-sm text-ink-500">
+            No kudos yet for {monthLabel}. Be the first to give someone their flowers.
+          </p>
         </div>
       ) : (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center text-slate-600">
-          No leaderboard data available
-        </div>
+        <>
+          <div className="grid gap-10 lg:grid-cols-2 lg:gap-12">
+            <Podium title="Givers" entries={data.topGivers} accent="give" />
+            <Podium title="Receivers" entries={data.topReceivers} accent="receive" />
+          </div>
+
+          {(data.topGivers.length > 3 || data.topReceivers.length > 3) && (
+            <div className="grid gap-10 lg:grid-cols-2 lg:gap-12">
+              <RankList
+                title="And the rest of the givers"
+                entries={data.topGivers}
+                accent="give"
+              />
+              <RankList
+                title="And the rest of the receivers"
+                entries={data.topReceivers}
+                accent="receive"
+              />
+            </div>
+          )}
+        </>
       )}
 
       {sortedArchives.length > 0 && (
-        <Card className="mt-6 border-slate-200 bg-white">
-          <div className="border-b border-slate-200 px-4 py-3">
-            <h3 className="text-sm font-semibold text-slate-800">Historical leaderboards</h3>
-            <p className="text-xs text-slate-500">Select a month. This list scrolls as history grows.</p>
-          </div>
-          <div className="space-y-3 p-4">
-            {isArchived && (
-              <Button onClick={handleBackToCurrent} variant="outline" className="w-fit">
-                Back to Current Month
-              </Button>
-            )}
-            <div className="max-h-52 overflow-y-auto pr-1">
-              <div className="flex flex-wrap gap-2">
-                {sortedArchives.map((archive) => (
-                  <Button
-                    key={`${archive.year}-${archive.month}`}
-                    onClick={() => handleSelectArchive(archive.month, archive.year)}
-                    variant={selectedMonth === archive.month && selectedYear === archive.year ? "default" : "outline"}
-                    size="sm"
-                    className="text-xs"
-                  >
-                    {getMonthName(archive.month)} {archive.year}
-                  </Button>
-                ))}
+        <section className="space-y-3 border-t border-ink-200 pt-8">
+          <button
+            type="button"
+            onClick={() => setArchiveOpen((v) => !v)}
+            aria-expanded={archiveOpen}
+            className="group flex w-full items-center justify-between gap-4 text-left"
+          >
+            <span className="space-y-1">
+              <span className="block text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-ink-400">
+                The archive
+              </span>
+              <span className="block font-display text-3xl italic text-ink-900">
+                {sortedArchives.length} past month
+                {sortedArchives.length === 1 ? "" : "s"} on the shelf.
+              </span>
+            </span>
+            <span
+              aria-hidden
+              className={cn(
+                "flex size-9 shrink-0 items-center justify-center rounded-full border border-ink-200 bg-card text-ink-700 transition-transform",
+                archiveOpen && "rotate-180",
+              )}
+            >
+              <ChevronDown className="h-4 w-4" />
+            </span>
+          </button>
+          {archiveOpen && (
+            <div className="max-h-72 overflow-y-auto pt-3 scrollbar-thin">
+              <div className="flex flex-wrap gap-2 pr-1">
+                {sortedArchives.map((a) => {
+                  const active =
+                    isArchived &&
+                    archived.month === a.month &&
+                    archived.year === a.year;
+                  return (
+                    <button
+                      key={`${a.year}-${a.month}`}
+                      type="button"
+                      onClick={() => handlePick(a.month, a.year)}
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                        active
+                          ? "border-ink-900 bg-ink-900 text-paper"
+                          : "border-ink-200 bg-card text-ink-600 hover:border-ink-900 hover:text-ink-900",
+                      )}
+                    >
+                      {MONTHS[a.month - 1].slice(0, 3)} {a.year}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          </div>
-        </Card>
+          )}
+        </section>
       )}
-    </>
+    </div>
   );
 }

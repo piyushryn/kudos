@@ -8,7 +8,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { navigation } from "@/lib/navigation";
+import { adminNav, primaryNav } from "@/lib/navigation";
 
 function pathIsActive(pathname: string, href: string): boolean {
   if (href === "/admin") {
@@ -17,7 +17,132 @@ function pathIsActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function SidebarContent({
+function Wordmark({ onClick }: { onClick?: () => void }) {
+  return (
+    <Link href="/leaderboard" onClick={onClick} className="group flex items-center gap-2">
+      <span className="font-display text-[1.65rem] italic leading-none text-ink-900">kudos</span>
+      <span
+        aria-hidden
+        className="inline-block size-1.5 -translate-y-1 rounded-full bg-leaf-500 transition-transform group-hover:translate-y-0"
+      />
+    </Link>
+  );
+}
+
+function MonthPill() {
+  const now = new Date();
+  const month = now.toLocaleString(undefined, { month: "long" });
+  const year = now.getFullYear();
+  return (
+    <span className="hidden items-center gap-2 rounded-full border border-ink-200 bg-card px-3 py-1 text-xs font-medium text-ink-600 md:inline-flex">
+      <span aria-hidden className="inline-block size-1.5 rounded-full bg-leaf-500" />
+      {month} {year}
+    </span>
+  );
+}
+
+function TopNavLink({
+  href,
+  label,
+  pathname,
+  onClick,
+  forceActive,
+}: {
+  href: string;
+  label: string;
+  pathname: string;
+  onClick?: () => void;
+  forceActive?: boolean;
+}) {
+  const active = forceActive ?? pathIsActive(pathname, href);
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "relative inline-flex items-center py-1 text-sm font-medium transition-colors",
+        active ? "text-ink-900" : "text-ink-500 hover:text-ink-900",
+      )}
+    >
+      {label}
+      <span
+        aria-hidden
+        className={cn(
+          "absolute inset-x-0 -bottom-[18px] h-[2px] origin-center bg-ink-900 transition-transform",
+          active ? "scale-x-100" : "scale-x-0",
+        )}
+      />
+    </Link>
+  );
+}
+
+function PrimaryNav({
+  pathname,
+  inAdmin,
+  onLinkClick,
+}: {
+  pathname: string;
+  inAdmin: boolean;
+  onLinkClick?: () => void;
+}) {
+  return (
+    <nav className="flex items-center gap-8">
+      {primaryNav.map((item) => (
+        <TopNavLink
+          key={item.href}
+          href={item.href}
+          label={item.label}
+          pathname={pathname}
+          onClick={onLinkClick}
+        />
+      ))}
+      <TopNavLink
+        href="/admin"
+        label="Admin"
+        pathname={pathname}
+        forceActive={inAdmin}
+        onClick={onLinkClick}
+      />
+    </nav>
+  );
+}
+
+function AdminSubNav({
+  pathname,
+  onLinkClick,
+}: {
+  pathname: string;
+  onLinkClick?: () => void;
+}) {
+  return (
+    <div className="sticky top-16 z-10 border-b border-ink-200 bg-paper/85 backdrop-blur">
+      <div className="mx-auto flex w-full max-w-[1200px] items-center gap-1 overflow-x-auto px-5 py-2 md:px-8 scrollbar-thin">
+        {adminNav.map((item) => {
+          const active = pathIsActive(pathname, item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onLinkClick}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                active
+                  ? "bg-ink-900 text-paper"
+                  : "text-ink-500 hover:bg-ink-200/60 hover:text-ink-900",
+              )}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function MobileMenu({
   pathname,
   onLinkClick,
   showAdminLogout,
@@ -27,62 +152,60 @@ function SidebarContent({
   showAdminLogout: boolean;
 }) {
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto px-3 py-5">
-      <div className="mb-3 flex items-center gap-3 border-b border-white/10 px-2 pb-4">
-        <div
-          aria-hidden
-          className="flex size-10 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-emerald-500 to-teal-700 text-lg font-bold text-white shadow"
-        >
-          K
-        </div>
-        <div className="min-w-0">
-          <div className="truncate text-base font-semibold tracking-tight text-slate-100">Kudos</div>
-          <div className="text-xs text-slate-400">Slack workspace</div>
-        </div>
+    <div className="flex h-full min-h-0 flex-col gap-1 overflow-y-auto px-4 pb-6 pt-12 text-ink-900">
+      <div className="mb-4 flex items-center gap-2 px-2">
+        <span className="font-display text-2xl italic leading-none text-ink-900">kudos</span>
+        <span aria-hidden className="inline-block size-1.5 -translate-y-1 rounded-full bg-leaf-500" />
       </div>
 
-      <nav className="flex flex-1 flex-col gap-5">
-        {navigation.map((section, sectionIndex) => (
-          <div key={section.title || `nav-${sectionIndex}`}>
-            {section.title.trim() ? (
-              <p className="px-2 pb-1 text-[0.68rem] font-semibold uppercase tracking-widest text-slate-400">
-                {section.title}
-              </p>
-            ) : null}
-            <ul className="space-y-1">
-              {section.items.map((item) => {
-                const active = pathIsActive(pathname, item.href);
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      aria-current={active ? "page" : undefined}
-                      onClick={onLinkClick}
-                      className={cn(
-                        "block rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                        active
-                          ? "bg-emerald-500/15 text-emerald-300"
-                          : "text-slate-200 hover:bg-white/5 hover:text-white",
-                      )}
-                    >
-                      <span className="block truncate">{item.label}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-      </nav>
+      <p className="px-2 pb-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-ink-400">
+        Workspace
+      </p>
+      {primaryNav.map((item) => {
+        const active = pathIsActive(pathname, item.href);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onLinkClick}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              active ? "bg-ink-900 text-paper" : "text-ink-700 hover:bg-ink-100",
+            )}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+
+      <p className="mt-4 px-2 pb-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-ink-400">
+        Admin
+      </p>
+      {adminNav.map((item) => {
+        const active = pathIsActive(pathname, item.href);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onLinkClick}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              active ? "bg-ink-900 text-paper" : "text-ink-700 hover:bg-ink-100",
+            )}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
 
       {showAdminLogout ? (
-        <div className="mt-auto border-t border-white/10 pt-4">
-          <form action="/admin/logout" method="post">
-            <Button type="submit" variant="outline" className="w-full border-white/20 bg-transparent text-slate-300 hover:bg-white/5 hover:text-white">
-              Log out
-            </Button>
-          </form>
-        </div>
+        <form action="/admin/logout" method="post" className="mt-6">
+          <Button type="submit" variant="outline" className="w-full">
+            Sign out
+          </Button>
+        </form>
       ) : null}
     </div>
   );
@@ -93,44 +216,82 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const closeMobile = useCallback(() => setMobileOpen(false), []);
-  const showAdminLogout = useMemo(
+  const inAdmin = useMemo(
     () => pathname.startsWith("/admin") && pathname !== "/admin/login",
     [pathname],
   );
 
   return (
-    <div className="flex min-h-screen items-stretch">
-      <aside className="sticky top-0 hidden h-screen w-[268px] shrink-0 border-r border-slate-800 bg-slate-950 text-slate-100 lg:block">
-        <SidebarContent pathname={pathname} onLinkClick={closeMobile} showAdminLogout={showAdminLogout} />
-      </aside>
+    <div className="flex min-h-screen flex-col bg-paper">
+      <header className="sticky top-0 z-20 h-16 border-b border-ink-200 bg-paper/85 backdrop-blur">
+        <div className="mx-auto flex h-full w-full max-w-[1200px] items-center gap-6 px-5 md:px-8">
+          <Wordmark />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-slate-200 bg-white px-4 lg:hidden">
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                aria-expanded={mobileOpen}
-                aria-controls="app-sidebar-mobile"
-                className="border-slate-300 bg-slate-100 text-slate-900 hover:bg-slate-200"
+          <div className="hidden flex-1 items-center justify-center md:flex">
+            <PrimaryNav pathname={pathname} inAdmin={inAdmin} />
+          </div>
+
+          <div className="ml-auto flex items-center gap-3">
+            <MonthPill />
+            {inAdmin ? (
+              <form action="/admin/logout" method="post" className="hidden md:block">
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="sm"
+                  className="border-ink-200 bg-card text-ink-700 hover:bg-paper-2"
+                >
+                  Sign out
+                </Button>
+              </form>
+            ) : null}
+
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-expanded={mobileOpen}
+                  aria-controls="app-mobile-menu"
+                  className="border-ink-200 bg-card text-ink-900 hover:bg-paper-2 md:hidden"
+                >
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">
+                    {mobileOpen ? "Close menu" : "Open menu"}
+                  </span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                id="app-mobile-menu"
+                className="border-ink-200 bg-paper p-0 text-ink-900"
               >
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">{mobileOpen ? "Close menu" : "Open menu"}</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent id="app-sidebar-mobile" className="border-slate-800 bg-slate-950 p-0 text-slate-100">
-              <SidebarContent pathname={pathname} onLinkClick={closeMobile} showAdminLogout={showAdminLogout} />
-            </SheetContent>
-          </Sheet>
-          <span className="text-base font-semibold tracking-tight text-slate-900">Kudos</span>
-        </header>
+                <MobileMenu
+                  pathname={pathname}
+                  onLinkClick={closeMobile}
+                  showAdminLogout={inAdmin}
+                />
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+      </header>
 
-        <main id="main-content" className="mx-auto w-full max-w-[1200px] flex-1 px-5 py-6 md:px-8 md:py-8">
-          {children}
-        </main>
-      </div>
+      {inAdmin ? <AdminSubNav pathname={pathname} /> : null}
+
+      <main
+        id="main-content"
+        className="mx-auto w-full max-w-[1200px] flex-1 px-5 py-10 md:px-8 md:py-14"
+      >
+        {children}
+      </main>
+
+      <footer className="border-t border-ink-200 bg-paper">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-between gap-3 px-5 py-6 text-xs text-ink-400 md:px-8">
+          <span>Kudos for the Slack workspace.</span>
+          <span className="font-display italic">Made for celebrating people.</span>
+        </div>
+      </footer>
     </div>
   );
 }

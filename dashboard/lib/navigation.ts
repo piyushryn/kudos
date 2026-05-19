@@ -4,29 +4,39 @@ export type NavItem = {
 };
 
 export type NavSection = {
-  /** Empty string hides the section label in the sidebar. */
+  /** Empty string hides the section label in the sidebar/menu. */
   title: string;
   items: NavItem[];
 };
 
-/** Only `/leaderboard` is outside the `/admin` area; everything else is under Admin. */
+/**
+ * Primary top-nav: shown to everyone, always.
+ * The `Admin` entry is added by the shell so unauthenticated users still see
+ * it (server-side guards do the gating).
+ */
+export const primaryNav: NavItem[] = [
+  { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/me", label: "My stats" },
+];
+
+/**
+ * Admin sub-nav: shown as pills under the top bar while inside `/admin/*`.
+ */
+export const adminNav: NavItem[] = [
+  { href: "/admin", label: "Home" },
+  { href: "/admin/audit-log", label: "Audit log" },
+  { href: "/admin/users", label: "Users" },
+  { href: "/admin/categories", label: "Categories" },
+  { href: "/admin/quotas", label: "Quotas" },
+  { href: "/admin/leaderboard-reset", label: "Leaderboard reset" },
+  { href: "/admin/rbac-users", label: "Access" },
+];
+
+/**
+ * Mobile menu groups everything in one drawer.
+ * Kept exported for backwards compat with any consumer that imported `navigation`.
+ */
 export const navigation: NavSection[] = [
-  {
-    title: "Workspace",
-    items: [
-      { href: "/leaderboard", label: "Leaderboard" },
-      { href: "/me", label: "My stats" },
-    ],
-  },
-  {
-    title: "Admin",
-    items: [
-      { href: "/admin", label: "Home" },
-      { href: "/admin/audit-log", label: "Audit log" },
-      { href: "/admin/categories", label: "User categories" },
-      { href: "/admin/users", label: "Users" },
-      { href: "/admin/quotas", label: "Quotas & balances" },
-      { href: "/admin/leaderboard-reset", label: "Leaderboard reset" },
-    ],
-  },
+  { title: "Workspace", items: primaryNav },
+  { title: "Admin", items: adminNav },
 ];

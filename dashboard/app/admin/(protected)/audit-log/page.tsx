@@ -1,27 +1,59 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
+import { Monogram } from "@/components/monogram";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { type AuditLogEntryKind, type AuditLogResponse, fetchAuditLogClient, listArchivedLeaderboards } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import {
+  type AuditLogEntryKind,
+  type AuditLogResponse,
+  fetchAuditLogClient,
+  listArchivedLeaderboards,
+} from "@/lib/api";
 
 function kindLabel(kind: AuditLogEntryKind): string {
   switch (kind) {
     case "ADMIN_RESET_ALL":
-      return "Admin reset (all)";
+      return "Reset · all";
     case "ADMIN_RESET_USER":
-      return "Admin reset (user)";
+      return "Reset · user";
     default:
       return "Kudos";
   }
 }
 
+function KindBadge({ kind }: { kind: AuditLogEntryKind }) {
+  if (kind === "KUDO") {
+    return (
+      <Badge variant="secondary">
+        <span aria-hidden className="inline-block size-1.5 rounded-full bg-leaf-500" />
+        {kindLabel(kind)}
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="destructive">
+      <span aria-hidden className="inline-block size-1.5 rounded-full bg-coral-500" />
+      {kindLabel(kind)}
+    </Badge>
+  );
+}
+
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 type ArchiveOption = { month: number; year: number; archivedAt: string };
@@ -35,9 +67,13 @@ const exactDateFormatter = new Intl.DateTimeFormat(undefined, {
   timeZoneName: "short",
 });
 
-const relativeDateFormatter = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+const relativeDateFormatter = new Intl.RelativeTimeFormat(undefined, {
+  numeric: "auto",
+});
 
-const formatAuditTimestamp = (timestamp: string): { label: string; exact: string } => {
+const formatAuditTimestamp = (
+  timestamp: string,
+): { label: string; exact: string } => {
   const date = new Date(timestamp);
   const exact = exactDateFormatter.format(date);
   const diffMs = date.getTime() - Date.now();
@@ -46,16 +82,28 @@ const formatAuditTimestamp = (timestamp: string): { label: string; exact: string
   if (absSeconds > 24 * 60 * 60) {
     return { label: exact, exact };
   }
-
   if (absSeconds < 60) {
-    return { label: relativeDateFormatter.format(Math.round(diffMs / 1000), "second"), exact };
+    return {
+      label: relativeDateFormatter.format(Math.round(diffMs / 1000), "second"),
+      exact,
+    };
   }
-
   if (absSeconds < 60 * 60) {
-    return { label: relativeDateFormatter.format(Math.round(diffMs / (60 * 1000)), "minute"), exact };
+    return {
+      label: relativeDateFormatter.format(
+        Math.round(diffMs / (60 * 1000)),
+        "minute",
+      ),
+      exact,
+    };
   }
-
-  return { label: relativeDateFormatter.format(Math.round(diffMs / (60 * 60 * 1000)), "hour"), exact };
+  return {
+    label: relativeDateFormatter.format(
+      Math.round(diffMs / (60 * 60 * 1000)),
+      "hour",
+    ),
+    exact,
+  };
 };
 
 export default function AuditLogPage() {
@@ -66,11 +114,13 @@ export default function AuditLogPage() {
   const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
   const [selectedYear, setSelectedYear] = useState<number | undefined>();
 
-  const loadLog = async (params: {
-    showArchived?: boolean;
-    month?: number;
-    year?: number;
-  } = {}) => {
+  const loadLog = async (
+    params: {
+      showArchived?: boolean;
+      month?: number;
+      year?: number;
+    } = {},
+  ) => {
     setLoading(true);
     try {
       const result = await fetchAuditLogClient(params);
@@ -84,7 +134,9 @@ export default function AuditLogPage() {
 
   useEffect(() => {
     loadLog();
-    listArchivedLeaderboards().then(setArchives).catch(() => {});
+    listArchivedLeaderboards()
+      .then(setArchives)
+      .catch(() => {});
   }, []);
 
   const handleToggleArchived = (archive: boolean) => {
@@ -93,6 +145,8 @@ export default function AuditLogPage() {
     setSelectedYear(undefined);
     if (!archive) {
       loadLog();
+    } else {
+      setData(null);
     }
   };
 
@@ -102,138 +156,197 @@ export default function AuditLogPage() {
     loadLog({ showArchived: true, month, year });
   };
 
+  const sortedArchives = [...archives].sort(
+    (a, b) => b.year - a.year || b.month - a.month,
+  );
+
   return (
-    <>
+    <div className="space-y-8">
       <PageHeader
-        title="Audit log"
-        description="Append-only history: every kudos transfer and every admin leaderboard reset stays in this log."
+        eyebrow="Admin · audit log"
+        title="Every move on record."
+        description="Append-only history: every kudos transfer and every admin reset stays in this log. Nothing is ever deleted."
       />
-      <div className="space-y-4">
-        {/* Mode toggle */}
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant={!showArchived ? "default" : "outline"}
-            onClick={() => handleToggleArchived(false)}
-          >
-            Active
-          </Button>
-          <Button
-            size="sm"
-            variant={showArchived ? "default" : "outline"}
-            onClick={() => handleToggleArchived(true)}
-          >
-            Archived
-          </Button>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex rounded-full border border-ink-200 bg-card p-0.5">
+          {([
+            { key: "active", label: "Active" },
+            { key: "archived", label: "Archived" },
+          ] as const).map((m) => {
+            const active = (m.key === "archived") === showArchived;
+            return (
+              <button
+                key={m.key}
+                type="button"
+                onClick={() => handleToggleArchived(m.key === "archived")}
+                className={cn(
+                  "rounded-full px-4 py-1.5 text-xs font-medium transition-colors",
+                  active
+                    ? "bg-ink-900 text-paper"
+                    : "text-ink-600 hover:text-ink-900",
+                )}
+              >
+                {m.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Context banner */}
-        {data && (
-          <p className="text-sm text-slate-500">
+        {data ? (
+          <p className="text-sm text-ink-500">
             {data.isArchived && data.month && data.year ? (
               <>
-                Showing archived log for{" "}
-                <strong className="text-slate-900">
+                Showing archive for{" "}
+                <strong className="font-semibold text-ink-900">
                   {MONTH_NAMES[data.month - 1]} {data.year}
                 </strong>
-                {" — "}
               </>
             ) : (
-              "Showing active (current) transactions — "
-            )}
-            <strong className="font-semibold text-slate-900">{data.total}</strong> entries
+              <>Showing active (current) transactions</>
+            )}{" "}
+            <span className="text-ink-300">·</span>{" "}
+            <strong className="font-semibold text-ink-900">{data.total}</strong>{" "}
+            entries
           </p>
-        )}
+        ) : null}
+      </div>
 
-        {loading ? (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
-            Loading…
-          </div>
-        ) : !data || (showArchived && !selectedMonth) ? (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
-            {showArchived ? "Select a month below to view its archived log." : "No data available."}
-          </div>
-        ) : (
-          <Card className="overflow-x-auto">
-            <Table className="min-w-[760px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="w-[13rem]">Type</TableHead>
-                  <TableHead>Channel</TableHead>
-                  <TableHead>Giver</TableHead>
-                  <TableHead>Receiver</TableHead>
-                  <TableHead>Points</TableHead>
-                  <TableHead>Message</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+      {showArchived && (
+        <div className="rounded-2xl border border-ink-200 bg-card p-5">
+          <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-ink-400">
+            Months on file
+          </p>
+          {sortedArchives.length === 0 ? (
+            <p className="mt-3 text-sm text-ink-500">
+              No archived months available yet.
+            </p>
+          ) : (
+            <div className="mt-3 max-h-52 overflow-y-auto pr-1 scrollbar-thin">
+              <div className="flex flex-wrap gap-2">
+                {sortedArchives.map((a) => {
+                  const active =
+                    selectedMonth === a.month && selectedYear === a.year;
+                  return (
+                    <button
+                      key={`${a.year}-${a.month}`}
+                      type="button"
+                      onClick={() => handleSelectArchiveMonth(a.month, a.year)}
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                        active
+                          ? "border-ink-900 bg-ink-900 text-paper"
+                          : "border-ink-200 bg-card text-ink-600 hover:border-ink-900 hover:text-ink-900",
+                      )}
+                    >
+                      {MONTH_NAMES[a.month - 1].slice(0, 3)} {a.year}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="rounded-2xl border border-ink-200 bg-card p-12 text-center text-sm text-ink-500">
+          Loading…
+        </div>
+      ) : !data || (showArchived && !selectedMonth) ? (
+        <div className="rounded-2xl border border-ink-200 bg-card p-12 text-center text-sm text-ink-500">
+          {showArchived
+            ? "Select a month above to view its archived log."
+            : "No data available."}
+        </div>
+      ) : data.items.length === 0 ? (
+        <div className="rounded-2xl border border-ink-200 bg-card p-12 text-center">
+          <p className="font-display text-3xl italic text-ink-900">
+            Nothing on the wire yet.
+          </p>
+          <p className="mt-2 text-sm text-ink-500">
+            The audit log will fill up as people give kudos.
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-ink-200 bg-card">
+          <div className="overflow-x-auto scrollbar-thin">
+            <table className="w-full min-w-[860px] text-sm">
+              <thead>
+                <tr className="border-b border-ink-200 bg-paper-2/40">
+                  {["When", "Type", "Channel", "Giver", "Receiver", "Pts", "Message"].map(
+                    (h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left font-mono text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-ink-500"
+                      >
+                        {h}
+                      </th>
+                    ),
+                  )}
+                </tr>
+              </thead>
+              <tbody>
                 {data.items.map((item) => {
                   const isKudo = item.kind === "KUDO";
                   const timestamp = formatAuditTimestamp(item.createdAt);
                   return (
-                    <TableRow
+                    <tr
                       key={item.id}
-                      className={!isKudo ? "bg-slate-50 text-slate-700 hover:bg-slate-50" : undefined}
+                      className={cn(
+                        "border-b border-ink-200 last:border-b-0 transition-colors hover:bg-paper-2/60",
+                        !isKudo && "bg-coral-100/20",
+                      )}
                     >
-                      <TableCell>
-                        <span title={timestamp.exact}>
-                          {timestamp.label}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="default"
-                          className="min-h-6 max-w-[13rem] justify-center px-2.5 py-1 text-center text-[11px] leading-tight whitespace-normal break-words"
-                        >
-                          {kindLabel(item.kind)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{isKudo ? (item.channelName ?? item.channelId ?? "—") : "—"}</TableCell>
-                      <TableCell>{item.giver.displayName}</TableCell>
-                      <TableCell>{item.receiver.displayName}</TableCell>
-                      <TableCell>{isKudo ? item.points : "—"}</TableCell>
-                      <TableCell>{item.message}</TableCell>
-                    </TableRow>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-ink-500">
+                        <span title={timestamp.exact}>{timestamp.label}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <KindBadge kind={item.kind} />
+                      </td>
+                      <td className="px-4 py-3 text-xs text-ink-600">
+                        {isKudo ? (
+                          item.channelName ? (
+                            <code>{item.channelName}</code>
+                          ) : item.channelId ? (
+                            <code>{item.channelId}</code>
+                          ) : (
+                            "—"
+                          )
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <Monogram name={item.giver.displayName} size="sm" />
+                          <span className="text-sm text-ink-900">
+                            {item.giver.displayName}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <Monogram name={item.receiver.displayName} size="sm" />
+                          <span className="text-sm text-ink-900">
+                            {item.receiver.displayName}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 font-display text-lg italic tabular-nums text-leaf-700">
+                        {isKudo ? item.points : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-ink-700">
+                        {item.message}
+                      </td>
+                    </tr>
                   );
                 })}
-              </TableBody>
-            </Table>
-          </Card>
-        )}
-
-        {showArchived && (
-          <Card className="border-slate-200 bg-white">
-            <div className="border-b border-slate-200 px-4 py-3">
-              <p className="text-sm font-medium text-slate-800">Historical audit logs</p>
-              <p className="text-xs text-slate-500">Select a month. This list scrolls as archives grow.</p>
-            </div>
-            <div className="p-4">
-              {archives.length === 0 ? (
-                <p className="text-sm text-slate-500">No archived months available yet.</p>
-              ) : (
-                <div className="max-h-52 overflow-y-auto pr-1">
-                  <div className="flex flex-wrap gap-2">
-                    {[...archives]
-                      .sort((a, b) => b.year - a.year || b.month - a.month)
-                      .map((a) => (
-                        <Button
-                          key={`${a.year}-${a.month}`}
-                          size="sm"
-                          variant={selectedMonth === a.month && selectedYear === a.year ? "default" : "outline"}
-                          className="text-xs"
-                          onClick={() => handleSelectArchiveMonth(a.month, a.year)}
-                        >
-                          {MONTH_NAMES[a.month - 1]} {a.year}
-                        </Button>
-                      ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </Card>
-        )}
-      </div>
-    </>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

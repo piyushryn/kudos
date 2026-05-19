@@ -1,13 +1,38 @@
+import { cn } from "@/lib/utils";
+
 type StatCardProps = {
   label: string;
   value: number | string;
+  /** Accent for the value typography. Defaults to neutral ink. */
+  accent?: "leaf" | "coral" | "violet";
+  className?: string;
 };
 
-export function StatCard({ label, value }: StatCardProps) {
+const accentColor: Record<NonNullable<StatCardProps["accent"]>, string> = {
+  leaf: "text-leaf-700",
+  coral: "text-coral-600",
+  violet: "text-violet-700",
+};
+
+export function StatCard({ label, value, accent, className }: StatCardProps) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
-      <p className="mb-1 text-xs font-medium text-slate-500">{label}</p>
-      <p className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 tabular-nums">{value}</p>
+    <div
+      className={cn(
+        "rounded-2xl border border-ink-200 bg-card p-5 transition-colors hover:border-ink-300",
+        className,
+      )}
+    >
+      <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-ink-400">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "mt-3 font-display text-5xl italic leading-none tabular-nums",
+          accent ? accentColor[accent] : "text-ink-900",
+        )}
+      >
+        {value}
+      </p>
     </div>
   );
 }

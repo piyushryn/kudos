@@ -23,7 +23,9 @@ const resolveSlackUserIdToken = (raw: string, users: UserOption[]): string | nul
     return normalize(idMatch[0]);
   }
 
-  const byName = users.filter((u) => u.displayName.toLowerCase() === trimmed.toLowerCase());
+  const byName = users.filter(
+    (u) => u.displayName.toLowerCase() === trimmed.toLowerCase(),
+  );
   if (byName.length === 1) {
     return byName[0].slackUserId;
   }
@@ -48,7 +50,11 @@ function SuggestionList({
 
   const q = query.trim().toLowerCase();
   const filtered = users
-    .filter((u) => u.slackUserId.toLowerCase().includes(q) || u.displayName.toLowerCase().includes(q))
+    .filter(
+      (u) =>
+        u.slackUserId.toLowerCase().includes(q) ||
+        u.displayName.toLowerCase().includes(q),
+    )
     .slice(0, 8);
 
   if (filtered.length === 0) {
@@ -56,25 +62,28 @@ function SuggestionList({
   }
 
   return (
-    <div className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow-sm">
+    <div className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-ink-200 bg-card shadow-lg shadow-ink-900/5">
       {filtered.map((user) => (
         <button
           key={user.slackUserId}
           type="button"
-          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-slate-50"
+          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-paper-2"
           onMouseDown={(e) => {
             // Keep input focused so blur handlers don't run before click.
             e.preventDefault();
           }}
           onClick={() => onPick(user)}
         >
-          <span className="truncate">{user.displayName}</span>
-          <span className="ml-3 shrink-0 text-xs text-slate-500">{user.slackUserId}</span>
+          <span className="truncate text-ink-900">{user.displayName}</span>
+          <span className="ml-3 shrink-0 font-mono text-xs text-ink-400">
+            {user.slackUserId}
+          </span>
         </button>
       ))}
     </div>
   );
 }
+
 function useDebounce<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState<T>(value);
   useEffect(() => {
@@ -109,7 +118,7 @@ export function UserIdInput({
   const matchedName = userMap.get(value.trim().toUpperCase());
 
   return (
-    <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
+    <label className="flex flex-col gap-1.5 text-sm font-medium text-ink-700">
       {label}
       <div className="relative">
         <Input
@@ -138,8 +147,10 @@ export function UserIdInput({
         />
       </div>
       {value.trim() ? (
-        <p className="text-xs text-slate-500">
-          {matchedName ? `Matched user: ${matchedName} (${value.trim().toUpperCase()})` : "No exact user match yet."}
+        <p className="text-xs text-ink-500">
+          {matchedName
+            ? `Matched: ${matchedName} (${value.trim().toUpperCase()})`
+            : "No exact user match yet."}
         </p>
       ) : null}
     </label>
@@ -159,10 +170,13 @@ export function BulkUserIdChipInput({
 }) {
   const [query, setQuery] = useState("");
   const [chips, setChips] = useState<string[]>([]);
-    const debouncedQuery = useDebounce(query, 200);
+  const debouncedQuery = useDebounce(query, 200);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const userMap = useMemo(() => new Map(users.map((u) => [u.slackUserId, u.displayName])), [users]);
+  const userMap = useMemo(
+    () => new Map(users.map((u) => [u.slackUserId, u.displayName])),
+    [users],
+  );
 
   const addToken = (token: string) => {
     const resolved = resolveSlackUserIdToken(token, users);
@@ -182,20 +196,20 @@ export function BulkUserIdChipInput({
   };
 
   return (
-    <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700">
+    <label className="flex flex-col gap-1.5 text-sm font-medium text-ink-700">
       {label}
       <input type="hidden" name={name} value={chips.join(",")} required={required} />
-      <div className="rounded-md border border-slate-300 p-2">
+      <div className="rounded-md border border-ink-200 bg-paper-2/40 p-2">
         {chips.length > 0 ? (
           <div className="mb-2 flex flex-wrap gap-2">
             {chips.map((chip) => (
-              <Badge key={chip} className="gap-2">
-                <span>
+              <Badge key={chip} className="gap-2 bg-card normal-case tracking-normal">
+                <span className="text-[11px] font-medium text-ink-700">
                   {userMap.get(chip) ?? "Unknown"} · {chip}
                 </span>
                 <button
                   type="button"
-                  className="text-slate-500 hover:text-slate-900"
+                  className="text-ink-400 hover:text-ink-900"
                   onClick={() => setChips((prev) => prev.filter((item) => item !== chip))}
                   aria-label={`Remove ${chip}`}
                 >
@@ -212,6 +226,7 @@ export function BulkUserIdChipInput({
             value={query}
             autoComplete="off"
             placeholder="Type a name or Slack ID, then press Enter"
+            className="border-0 bg-transparent"
             onFocus={() => setShowSuggestions(true)}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -243,7 +258,9 @@ export function BulkUserIdChipInput({
           />
         </div>
       </div>
-      <p className="text-xs text-slate-500">Press Enter/comma to add each user. Chips are submitted as Slack IDs.</p>
+      <p className="text-xs text-ink-500">
+        Press Enter/comma to add each user. Chips are submitted as Slack IDs.
+      </p>
     </label>
   );
 }

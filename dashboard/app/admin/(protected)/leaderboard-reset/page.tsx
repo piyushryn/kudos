@@ -1,68 +1,30 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 import { LeaderboardAdminToolbar } from "@/components/leaderboard-admin-toolbar";
 import { PageHeader } from "@/components/page-header";
 
 export default async function AdminLeaderboardResetPage() {
   return (
-    <>
+    <div className="space-y-8">
       <PageHeader
-        title="Leaderboard reset"
-        description="Clear displayed all-time totals by excluding past kudos from counts and appending an admin line to the audit log. Historical rows are never deleted. Open the public leaderboard in another tab to compare."
+        eyebrow="Admin · leaderboard reset"
+        title="Clear the board."
+        description="Stops past kudos from counting toward all-time totals and appends an admin row to the audit log. Historical rows are never deleted. Open the public leaderboard in another tab to compare."
+        actions={
+          <Link
+            href="/leaderboard"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-9 items-center gap-2 rounded-md border border-ink-200 bg-card px-3 text-xs font-medium text-ink-700 transition-colors hover:bg-paper-2 hover:text-ink-900"
+          >
+            View public leaderboard
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        }
       />
 
-      <p className="mb-4 text-sm text-slate-500">
-        <Link href="/leaderboard" className="font-medium text-emerald-700 underline underline-offset-4 hover:text-emerald-800">
-          View public leaderboard
-        </Link>
-      </p>
-
       <LeaderboardAdminToolbar />
-
-      {/*
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <section>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xs uppercase tracking-wider text-slate-500">
-                  Top givers (reset per person)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ol className="mt-1 divide-y divide-slate-200">
-                  {leaderboard.topGivers.map((entry) => (
-                    <li key={entry.userId} className="flex items-center gap-3 py-2.5 text-sm">
-                      <span className="min-w-0 flex-1 truncate">{entry.displayName}</span>
-                      <strong className="font-semibold text-emerald-700">{entry.points}</strong>
-                      <LeaderboardResetUserButton userId={entry.userId} displayName={entry.displayName} />
-                    </li>
-                  ))}
-                </ol>
-              </CardContent>
-            </Card>
-          </section>
-          <section>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xs uppercase tracking-wider text-slate-500">
-                  Top receivers (reset per person)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ol className="mt-1 divide-y divide-slate-200">
-                  {leaderboard.topReceivers.map((entry) => (
-                    <li key={entry.userId} className="flex items-center gap-3 py-2.5 text-sm">
-                      <span className="min-w-0 flex-1 truncate">{entry.displayName}</span>
-                      <strong className="font-semibold text-emerald-700">{entry.points}</strong>
-                      <LeaderboardResetUserButton userId={entry.userId} displayName={entry.displayName} />
-                    </li>
-                  ))}
-                </ol>
-              </CardContent>
-            </Card>
-          </section>
-        </div>
-      */}
-    </>
+    </div>
   );
 }

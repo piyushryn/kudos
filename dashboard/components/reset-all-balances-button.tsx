@@ -29,17 +29,20 @@ export function ResetAllBalancesButton() {
         setError(result.error);
         return;
       }
-      router.push("/admin/quotas?notice=" + encodeURIComponent("All balances reset for the current month."));
+      router.push(
+        "/admin/quotas?notice=" +
+          encodeURIComponent("All balances reset for the current month."),
+      );
       router.refresh();
     });
   };
 
   return (
-    <div className="flex w-full max-w-[600px] flex-col items-start gap-1.5">
+    <div className="flex w-full max-w-[600px] flex-col items-start gap-2">
       <Button type="button" variant="destructive" onClick={onClick} disabled={pending}>
         {pending ? "Resetting…" : "Reset all users’ monthly balances"}
       </Button>
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm text-coral-700">{error}</p> : null}
     </div>
   );
 }
