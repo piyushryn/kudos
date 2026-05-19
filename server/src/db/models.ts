@@ -78,6 +78,9 @@ kudosTransactionSchema.index({ kind: 1, countsTowardTotals: 1 });
 kudosTransactionSchema.index({ isArchived: 1, month: 1, year: 1 });
 kudosTransactionSchema.index({ isArchived: 1, createdAt: -1 });
 
+// Text index on displayName for fast case-insensitive user search
+userSchema.index({ displayName: "text" });
+
 const archivedLeaderboardSchema = new Schema(
   {
     month: { type: Number, required: true },

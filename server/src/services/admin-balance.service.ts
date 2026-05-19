@@ -175,8 +175,8 @@ export const listUsersForAdmin = async (
     search && search.trim().length > 0
       ? {
           $or: [
-            { displayName: { $regex: search.trim(), $options: "i" } },
-            { slackUserId: { $regex: search.trim() } },
+            { $text: { $search: search.trim() } },
+            { slackUserId: { $regex: search.trim(), $options: "i" } },
           ],
         }
       : {};

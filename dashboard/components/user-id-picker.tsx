@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useState, useEffect } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -75,6 +75,14 @@ function SuggestionList({
     </div>
   );
 }
+function useDebounce<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState<T>(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(timer);
+  }, [value, delayMs]);
+  return debounced;
+}
 
 export function UserIdInput({
   name,
@@ -92,6 +100,7 @@ export function UserIdInput({
   const [value, setValue] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputId = useId();
+  const debouncedValue = useDebounce(value, 200);
 
   const userMap = useMemo(
     () => new Map(users.map((u) => [u.slackUserId.toUpperCase(), u.displayName])),
@@ -120,7 +129,7 @@ export function UserIdInput({
         />
         <SuggestionList
           users={users}
-          query={value}
+          query={debouncedValue}
           visible={showSuggestions}
           onPick={(user) => {
             setValue(user.slackUserId);
@@ -150,6 +159,7 @@ export function BulkUserIdChipInput({
 }) {
   const [query, setQuery] = useState("");
   const [chips, setChips] = useState<string[]>([]);
+    const debouncedQuery = useDebounce(query, 200);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const userMap = useMemo(() => new Map(users.map((u) => [u.slackUserId, u.displayName])), [users]);
@@ -223,7 +233,7 @@ export function BulkUserIdChipInput({
           />
           <SuggestionList
             users={users}
-            query={query}
+            query={debouncedQuery}
             visible={showSuggestions}
             onPick={(user) => {
               addToken(user.slackUserId);
