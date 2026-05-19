@@ -153,7 +153,7 @@ export default function AuditLogPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
+                  <TableHead className="w-[13rem]">Type</TableHead>
                   <TableHead>Channel</TableHead>
                   <TableHead>Giver</TableHead>
                   <TableHead>Receiver</TableHead>
@@ -171,7 +171,12 @@ export default function AuditLogPage() {
                     >
                       <TableCell>{new Date(item.createdAt).toLocaleString()}</TableCell>
                       <TableCell>
-                        <Badge variant="default">{kindLabel(item.kind)}</Badge>
+                        <Badge
+                          variant="default"
+                          className="min-h-6 max-w-[13rem] justify-center px-2.5 py-1 text-center text-[11px] leading-tight whitespace-normal break-words"
+                        >
+                          {kindLabel(item.kind)}
+                        </Badge>
                       </TableCell>
                       <TableCell>{isKudo ? (item.channelName ?? item.channelId ?? "—") : "—"}</TableCell>
                       <TableCell>{item.giver.displayName}</TableCell>
