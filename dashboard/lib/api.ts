@@ -1,13 +1,13 @@
-// For client components, we use relative paths which resolve to the current origin
-// For SSR, the proxy will route to the correct backend
-const apiBaseUrl = "";
+// Client-callable API helpers. All requests go through the Next.js
+// proxy at /api/backend/* (see app/api/backend/[...path]/route.ts), which
+// forwards the browser session cookie to the Express backend. This keeps
+// the backend off the public network while preserving its existing RBAC.
 
-async function request<T>(path: string, headers?: HeadersInit): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(headers ?? {}),
-    },
+const PROXY_PREFIX = "/api/backend";
+
+async function request<T>(path: string): Promise<T> {
+  const response = await fetch(`${PROXY_PREFIX}${path}`, {
+    headers: { "Content-Type": "application/json" },
     cache: "no-store",
   });
 
@@ -23,54 +23,11 @@ export type LeaderboardResponse = {
   topReceivers: Array<{ displayName: string; points: number }>;
 };
 
-export type AdminLeaderboardResponse = {
-  topGivers: Array<{ userId: string; displayName: string; points: number }>;
-  topReceivers: Array<{ userId: string; displayName: string; points: number }>;
-};
-
-
-export async function requestAdminJsonWithInit<T>(
-  path: string,
-  init: RequestInit,
-): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
-    cache: "no-store",
-  });
-
-  const text = await response.text();
-  let body: unknown = null;
-  try {
-    body = text ? JSON.parse(text) : null;
-  } catch {
-    body = text;
-  }
-
-  if (!response.ok) {
-    const msg =
-      typeof body === "object" && body !== null && "error" in body
-        ? String((body as { error: string }).error)
-        : text || response.statusText;
-    throw new Error(msg);
-  }
-
-  return body as T;
-}
-
-export const fetchLeaderboard = () => request<LeaderboardResponse>("/public/leaderboard");
-
 export type ArchivedLeaderboardResponse = LeaderboardResponse & {
   month: number;
   year: number;
   archivedAt: string;
 };
-
-export const fetchArchivedLeaderboard = (month: number, year: number) =>
-  request<ArchivedLeaderboardResponse>(`/public/leaderboard/archived?month=${month}&year=${year}`);
 
 export type ArchivedLeaderboardListItem = {
   month: number;
@@ -78,26 +35,17 @@ export type ArchivedLeaderboardListItem = {
   archivedAt: string;
 };
 
-// This uses the public admin endpoint (no auth required, but data is admin-focused)
-// Can be called from client components safely since it doesn't use next/headers
-async function fetchFromPublic<T>(path: string): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    cache: "no-store",
-  });
+export const fetchLeaderboard = () => request<LeaderboardResponse>("/public/leaderboard");
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${path}: ${response.status}`);
-  }
+export const fetchArchivedLeaderboard = (month: number, year: number) =>
+  request<ArchivedLeaderboardResponse>(`/public/leaderboard/archived?month=${month}&year=${year}`);
 
-  return response.json() as Promise<T>;
-}
-
-// Public endpoint for listing archived leaderboards (no auth required)
+/**
+ * Lists archived months. Backed by an admin endpoint, so non-admin callers
+ * will receive 401/403; callers should treat errors as "no archives visible".
+ */
 export async function listArchivedLeaderboards(): Promise<ArchivedLeaderboardListItem[]> {
-  const data = await fetchFromPublic<{ archives: ArchivedLeaderboardListItem[] }>("/admin/leaderboard/archived");
+  const data = await request<{ archives: ArchivedLeaderboardListItem[] }>("/admin/leaderboard/archived");
   return data.archives;
 }
 
