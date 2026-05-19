@@ -1,9 +1,12 @@
 // Client-callable API helpers. All requests go through the Next.js
-// proxy at /api/backend/* (see app/api/backend/[...path]/route.ts), which
-// forwards the browser session cookie to the Express backend. This keeps
-// the backend off the public network while preserving its existing RBAC.
+// proxy at /bff/* (see app/bff/[...path]/route.ts), which forwards the
+// browser session cookie to the Express backend. This keeps the backend
+// off the public network while preserving its existing RBAC.
+//
+// The /bff prefix (instead of /api) intentionally sidesteps Cloudflare
+// rules that block or auth-gate /api/* on the public hostname.
 
-const PROXY_PREFIX = "/api/backend";
+const PROXY_PREFIX = "/bff";
 
 async function request<T>(path: string): Promise<T> {
   const response = await fetch(`${PROXY_PREFIX}${path}`, {
