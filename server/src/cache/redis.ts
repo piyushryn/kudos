@@ -27,6 +27,22 @@ const state: CacheClient = {
 let lastErrorLogged = 0;
 const ERROR_LOG_DEDUP_MS = 60_000;
 
+/** Strip any inline password from a redis:// URL before logging. */
+const redactedUrl = (raw: string | undefined): string | undefined => {
+  if (!raw) {
+    return raw;
+  }
+  try {
+    const u = new URL(raw);
+    if (u.password) {
+      u.password = "[REDACTED]";
+    }
+    return u.toString();
+  } catch {
+    return "<unparseable>";
+  }
+};
+
 const logRedisError = (err: unknown, context: string): void => {
   const now = Date.now();
   if (now - lastErrorLogged < ERROR_LOG_DEDUP_MS) {
@@ -51,6 +67,9 @@ const initClient = (): Redis | null => {
     };
     const client = new IORedis(config.REDIS_URL, options);
 
+    client.on("connect", () => {
+      redisLogger.info({ url: redactedUrl(config.REDIS_URL) }, "Redis TCP connected; awaiting handshake.");
+    });
     client.on("ready", () => {
       state.healthy = true;
       lastErrorLogged = 0;
