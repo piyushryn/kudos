@@ -1,6 +1,6 @@
 import { config } from "../config";
 import { withCache } from "../cache/cache.service";
-import { publicLeaderboardKey } from "../cache/keys";
+import { auditLogActiveKey, publicLeaderboardKey } from "../cache/keys";
 import { KudosEntryKind } from "../db/constants";
 import { kudosRepository } from "../db/kudos.repository";
 import { asObjectId } from "../db/mappers";
@@ -19,6 +19,7 @@ type LeaderboardEntry = {
 };
 
 const LEADERBOARD_CACHE_TTL_SECONDS = 24 * 60 * 60;
+const AUDIT_LOG_CACHE_TTL_SECONDS = 24 * 60 * 60;
 
 const computeLeaderboard = async (limit: number) => {
   const [topGiversRaw, topReceiversRaw] = await Promise.all([
@@ -150,6 +151,23 @@ export type AuditLogFilters = {
 };
 
 export const getAuditLog = async (page = 1, pageSize = 25, filters: AuditLogFilters = {}) => {
+  const isActiveDefaultView =
+    filters.isArchived !== true && filters.month === undefined && filters.year === undefined;
+
+  // Only the default (active, current) view is cacheable; archived / filtered
+  // reads are point-in-time and would balloon key cardinality.
+  if (!isActiveDefaultView) {
+    return computeAuditLog(page, pageSize, filters);
+  }
+
+  return withCache(
+    auditLogActiveKey(page, pageSize),
+    AUDIT_LOG_CACHE_TTL_SECONDS,
+    () => computeAuditLog(page, pageSize, filters),
+  );
+};
+
+const computeAuditLog = async (page: number, pageSize: number, filters: AuditLogFilters) => {
   const skip = (page - 1) * pageSize;
 
   const where: Record<string, unknown> = {

@@ -4,55 +4,74 @@ import * as invalidations from "../../cache/invalidations";
 import { KudosEntryKind } from "../constants";
 import { onKudosInsertMany, onKudosSaved } from "../kudos-cache-hooks";
 
-let invalidateSpy: ReturnType<typeof vi.spyOn>;
+let leaderboardSpy: ReturnType<typeof vi.spyOn>;
+let auditSpy: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
-  invalidateSpy = vi
+  leaderboardSpy = vi
     .spyOn(invalidations, "invalidateCurrentLeaderboard")
+    .mockResolvedValue(undefined);
+  auditSpy = vi
+    .spyOn(invalidations, "invalidateAuditLog")
     .mockResolvedValue(undefined);
 });
 
 afterEach(() => {
-  invalidateSpy.mockRestore();
+  leaderboardSpy.mockRestore();
+  auditSpy.mockRestore();
 });
 
 describe("onKudosSaved", () => {
-  it("invalidates the leaderboard when a KUDO row is saved", async () => {
+  it("invalidates leaderboard AND audit when a KUDO row is saved", async () => {
     await onKudosSaved({ kind: KudosEntryKind.KUDO });
-    expect(invalidateSpy).toHaveBeenCalledTimes(1);
-    expect(invalidateSpy).toHaveBeenCalledWith("kudos_transaction_save");
+    expect(leaderboardSpy).toHaveBeenCalledTimes(1);
+    expect(leaderboardSpy).toHaveBeenCalledWith("kudos_transaction_save");
+    expect(auditSpy).toHaveBeenCalledTimes(1);
+    expect(auditSpy).toHaveBeenCalledWith("kudos_transaction_save");
   });
 
-  it("skips admin marker rows", async () => {
+  it("invalidates audit only (not leaderboard) for admin marker rows", async () => {
     await onKudosSaved({ kind: KudosEntryKind.ADMIN_RESET_ALL });
     await onKudosSaved({ kind: KudosEntryKind.ADMIN_RESET_USER });
-    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(leaderboardSpy).not.toHaveBeenCalled();
+    expect(auditSpy).toHaveBeenCalledTimes(2);
   });
 
-  it("tolerates malformed docs without throwing", async () => {
+  it("tolerates malformed docs without throwing (still busts audit cache)", async () => {
     await expect(onKudosSaved({} as unknown as { kind?: string })).resolves.toBeUndefined();
-    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(leaderboardSpy).not.toHaveBeenCalled();
+    expect(auditSpy).toHaveBeenCalledTimes(1);
   });
 });
 
 describe("onKudosInsertMany", () => {
-  it("invalidates once when any inserted doc is a KUDO row", async () => {
+  it("invalidates both caches once when any inserted doc is a KUDO row", async () => {
     await onKudosInsertMany([
       { kind: KudosEntryKind.ADMIN_RESET_USER },
       { kind: KudosEntryKind.KUDO },
       { kind: KudosEntryKind.KUDO },
     ]);
-    expect(invalidateSpy).toHaveBeenCalledTimes(1);
-    expect(invalidateSpy).toHaveBeenCalledWith("kudos_transaction_insert_many");
+    expect(leaderboardSpy).toHaveBeenCalledTimes(1);
+    expect(leaderboardSpy).toHaveBeenCalledWith("kudos_transaction_insert_many");
+    expect(auditSpy).toHaveBeenCalledTimes(1);
+    expect(auditSpy).toHaveBeenCalledWith("kudos_transaction_insert_many");
   });
 
-  it("skips invalidation when no doc is a KUDO row", async () => {
+  it("invalidates audit only when no doc is a KUDO row", async () => {
     await onKudosInsertMany([{ kind: KudosEntryKind.ADMIN_RESET_ALL }]);
-    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(leaderboardSpy).not.toHaveBeenCalled();
+    expect(auditSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("is a no-op for an empty batch", async () => {
+    await onKudosInsertMany([]);
+    expect(leaderboardSpy).not.toHaveBeenCalled();
+    expect(auditSpy).not.toHaveBeenCalled();
   });
 
   it("accepts a single doc (non-array) shape", async () => {
     await onKudosInsertMany({ kind: KudosEntryKind.KUDO });
-    expect(invalidateSpy).toHaveBeenCalledTimes(1);
+    expect(leaderboardSpy).toHaveBeenCalledTimes(1);
+    expect(auditSpy).toHaveBeenCalledTimes(1);
   });
 });

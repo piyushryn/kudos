@@ -1,6 +1,6 @@
 import cron from "node-cron";
 
-import { invalidateCurrentLeaderboard } from "../cache/invalidations";
+import { invalidateAllKudosCaches } from "../cache/invalidations";
 import { config } from "../config";
 import { KudosEntryKind } from "../db/constants";
 import { UserGivingBalanceModel, UserModel, KudosTransactionModel, ArchivedLeaderboardModel } from "../db/models";
@@ -238,8 +238,9 @@ const archiveCurrentMonthAndProvisionNext = async (): Promise<void> => {
   );
 
   // After archiving the prior month, any stale current-month cache entries
-  // must be cleared so the now-empty leaderboard reflects reality.
-  await invalidateCurrentLeaderboard("monthly_reset_archive");
+  // (leaderboard + audit log) must be cleared so the now-empty surfaces
+  // reflect reality on the next read.
+  await invalidateAllKudosCaches("monthly_reset_archive");
 };
 
 export const runMonthlyBalanceProvisioning = async (): Promise<void> => {
