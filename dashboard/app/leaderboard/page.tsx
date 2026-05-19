@@ -29,10 +29,6 @@ export default function LeaderboardPage() {
   const [archives, setArchives] = useState<Array<{ month: number; year: number; archivedAt: string }>>([]);
   const [archivedLeaderboard, setArchivedLeaderboard] = useState<ArchivedLeaderboardData | null>(null);
 
-  const today = new Date();
-  const currentMonth = today.getMonth() + 1;
-  const currentYear = today.getFullYear();
-
   // Fetch current leaderboard on mount
   useEffect(() => {
     const loadCurrentLeaderboard = async () => {
@@ -70,7 +66,6 @@ export default function LeaderboardPage() {
       setArchivedLeaderboard(data);
       setSelectedMonth(month);
       setSelectedYear(year);
-      setLeaderboard(null);
     } catch (error) {
       console.error("Failed to fetch archived leaderboard", error);
     } finally {

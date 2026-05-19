@@ -167,14 +167,15 @@ export default function AuditLogPage() {
               <TableBody>
                 {data.items.map((item) => {
                   const isKudo = item.kind === "KUDO";
+                  const timestamp = formatAuditTimestamp(item.createdAt);
                   return (
                     <TableRow
                       key={item.id}
                       className={!isKudo ? "bg-slate-50 text-slate-700 hover:bg-slate-50" : undefined}
                     >
                       <TableCell>
-                        <span title={formatAuditTimestamp(item.createdAt).exact}>
-                          {formatAuditTimestamp(item.createdAt).label}
+                        <span title={timestamp.exact}>
+                          {timestamp.label}
                         </span>
                       </TableCell>
                       <TableCell>
