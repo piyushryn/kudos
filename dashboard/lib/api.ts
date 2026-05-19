@@ -28,23 +28,6 @@ export type AdminLeaderboardResponse = {
   topReceivers: Array<{ userId: string; displayName: string; points: number }>;
 };
 
-export type UserCategorySummary = {
-  id: string;
-  key: string;
-  name: string;
-  monthlyGivingQuota: number | null;
-};
-
-export type UserStatsResponse = {
-  slackUserId: string;
-  displayName: string;
-  totalGiven: number;
-  totalReceived: number;
-  remainingBalance: number;
-  userCategory: UserCategorySummary;
-  effectiveMonthlyQuota: number;
-  workspaceDefaultMonthlyBalance: number;
-};
 
 export async function requestAdminJsonWithInit<T>(
   path: string,
@@ -117,8 +100,6 @@ export async function listArchivedLeaderboards(): Promise<ArchivedLeaderboardLis
   const data = await fetchFromPublic<{ archives: ArchivedLeaderboardListItem[] }>("/admin/leaderboard/archived");
   return data.archives;
 }
-
-export const fetchMyUserStats = () => request<UserStatsResponse>("/user/me/stats");
 
 export type AuditLogEntryKind = "KUDO" | "ADMIN_RESET_USER" | "ADMIN_RESET_ALL";
 

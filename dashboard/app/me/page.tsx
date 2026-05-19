@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
-import { fetchMyUserStats } from "@/lib/api";
+import { fetchMyUserStats } from "@/lib/admin-api";
 import { requireUserSession } from "@/lib/require-user-session";
 
 export default async function MyStatsPage() {

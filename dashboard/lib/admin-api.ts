@@ -5,6 +5,24 @@ import { requireAdminSession } from "@/lib/require-admin-session";
 // For admin APIs (server-side), always get the base URL from env
 const apiBaseUrl = (runtimeEnv("DASHBOARD_API_BASE_URL") ?? "http://localhost:4000").replace(/\/$/, "");
 
+export type UserCategorySummary = {
+  id: string;
+  key: string;
+  name: string;
+  monthlyGivingQuota: number | null;
+};
+
+export type UserStatsResponse = {
+  slackUserId: string;
+  displayName: string;
+  totalGiven: number;
+  totalReceived: number;
+  remainingBalance: number;
+  userCategory: UserCategorySummary;
+  effectiveMonthlyQuota: number;
+  workspaceDefaultMonthlyBalance: number;
+};
+
 export type AdminLeaderboardResponse = {
   topGivers: Array<{ userId: string; displayName: string; points: number }>;
   topReceivers: Array<{ userId: string; displayName: string; points: number }>;
@@ -63,6 +81,9 @@ export const fetchAdminLeaderboard = async () => {
   await requireAdminSession("/admin/leaderboard-reset");
   return requestAdmin<AdminLeaderboardResponse>("/admin/leaderboard");
 };
+
+export const fetchMyUserStats = () =>
+  requestAdmin<UserStatsResponse>("/user/me/stats");
 
 export const fetchAuditLog = async (params: AuditLogQueryParams = {}): Promise<AuditLogResponse> => {
   await requireAdminSession("/admin/audit-log");
