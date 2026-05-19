@@ -30,6 +30,7 @@ const envSchema = z.object({
     ),
   USER_SESSION_SIGNING_SECRET: z.string().min(32),
   DASHBOARD_API_BASE_URL: z.url().optional(),
+  REDIS_URL: z.string().optional(),
   CORS_ALLOWED_ORIGINS: z
     .string()
     .optional()

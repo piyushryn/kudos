@@ -45,6 +45,19 @@ services:
     entrypoint: ["/usr/local/bin/mongo-init-replset.sh"]
     restart: "no"
 
+  redis:
+    image: redis:7-alpine
+    container_name: kudos-redis
+    command:
+      ["redis-server", "--save", "60", "1", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   server:
     build:
       context: ./server
@@ -54,10 +67,13 @@ services:
         condition: service_healthy
       mongo-init:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 4000
       MONGODB_URI: "mongodb://${MONGO_ROOT_USERNAME:-kudos}:${MONGO_ROOT_PASSWORD:-kudos}@mongo:27017/kudos?authSource=admin&replicaSet=rs0"
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
       SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
       DEFAULT_MONTHLY_BALANCE: ${DEFAULT_MONTHLY_BALANCE:-100}
@@ -112,3 +128,4 @@ services:
 volumes:
   mongo_data:
   mongo_configdb:
+  redis_data:

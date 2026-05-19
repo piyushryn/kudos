@@ -1,3 +1,4 @@
+import { invalidateCurrentLeaderboard } from "../cache/invalidations";
 import { KudosEntryKind } from "../db/constants";
 import { asObjectId } from "../db/mappers";
 import { KudosTransactionModel, UserModel } from "../db/models";
@@ -52,6 +53,8 @@ export const performFullLeaderboardReset = async (): Promise<{ excludedFromTotal
   } finally {
     await session.endSession();
   }
+
+  await invalidateCurrentLeaderboard("leaderboard_reset_all");
 
   return { excludedFromTotals };
 };
@@ -108,6 +111,8 @@ export const performUserLeaderboardResetByUserId = async (userId: string): Promi
   } finally {
     await session.endSession();
   }
+
+  await invalidateCurrentLeaderboard("leaderboard_reset_user");
 
   return { excludedFromTotals };
 };

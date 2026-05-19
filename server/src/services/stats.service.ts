@@ -1,4 +1,6 @@
 import { config } from "../config";
+import { withCache } from "../cache/cache.service";
+import { publicLeaderboardKey } from "../cache/keys";
 import { KudosEntryKind } from "../db/constants";
 import { kudosRepository } from "../db/kudos.repository";
 import { asObjectId } from "../db/mappers";
@@ -16,7 +18,9 @@ type LeaderboardEntry = {
   points: number;
 };
 
-export const getLeaderboard = async (limit = 10) => {
+const LEADERBOARD_CACHE_TTL_SECONDS = 24 * 60 * 60;
+
+const computeLeaderboard = async (limit: number) => {
   const [topGiversRaw, topReceiversRaw] = await Promise.all([
     kudosRepository.groupTopGivers(limit),
     kudosRepository.groupTopReceivers(limit),
@@ -53,6 +57,15 @@ export const getLeaderboard = async (limit = 10) => {
 
   return { topGivers, topReceivers };
 };
+
+/**
+ * Current-month leaderboard. Cached in Redis for 24h, busted whenever a
+ * kudos transaction is written or a leaderboard reset / archive runs.
+ * Cache layer fails safe — if Redis is down or disabled, the underlying
+ * aggregation runs on every call.
+ */
+export const getLeaderboard = async (limit = 10) =>
+  withCache(publicLeaderboardKey(limit), LEADERBOARD_CACHE_TTL_SECONDS, () => computeLeaderboard(limit));
 
 const kudoTotalsWhere = {
   kind: KudosEntryKind.KUDO,

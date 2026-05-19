@@ -1,5 +1,6 @@
 import { InferSchemaType, Model, Schema, Types, model, models } from "mongoose";
 
+import { onKudosInsertMany, onKudosSaved } from "./kudos-cache-hooks";
 import { KudosEntryKind } from "./constants";
 
 const userCategorySchema = new Schema(
@@ -77,6 +78,18 @@ kudosTransactionSchema.index({ channelId: 1 });
 kudosTransactionSchema.index({ kind: 1, countsTowardTotals: 1 });
 kudosTransactionSchema.index({ isArchived: 1, month: 1, year: 1 });
 kudosTransactionSchema.index({ isArchived: 1, createdAt: -1 });
+
+// Bust the current-month leaderboard cache whenever a KUDO row is written.
+// ADMIN_RESET_* marker rows don't change totals so we skip them.
+// Hooks intentionally `void` the promise — failures inside the cache layer
+// are already swallowed there, and we must not block the DB write either way.
+kudosTransactionSchema.post("save", function (doc) {
+  void onKudosSaved(doc as unknown as { kind?: string });
+});
+
+kudosTransactionSchema.post("insertMany", function (docs) {
+  void onKudosInsertMany(docs as unknown as { kind?: string }[]);
+});
 
 // Text index on displayName for fast case-insensitive user search
 userSchema.index({ displayName: "text" });

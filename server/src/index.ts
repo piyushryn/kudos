@@ -1,4 +1,5 @@
 import { app } from "./app";
+import { disconnectRedis, getRedis } from "./cache/redis";
 import { config } from "./config";
 import { connectToDatabase, disconnectFromDatabase } from "./db/mongodb";
 import { scheduleMonthlyResetJob } from "./jobs/monthly-reset";
@@ -6,6 +7,10 @@ import { logger } from "./logger";
 
 const boot = async (): Promise<void> => {
   await connectToDatabase();
+  // Eagerly initialize Redis so connect/error events are logged at startup.
+  // A missing or broken Redis must not block boot; getRedis() simply returns
+  // null and cache helpers degrade to no-ops.
+  getRedis();
 
   const server = app.listen(config.PORT, () => {
     scheduleMonthlyResetJob();
@@ -14,6 +19,7 @@ const boot = async (): Promise<void> => {
 
   const shutdown = async (): Promise<void> => {
     server.close(async () => {
+      await disconnectRedis();
       await disconnectFromDatabase();
       process.exit(0);
     });
